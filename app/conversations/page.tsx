@@ -36,7 +36,7 @@ export default async function ConversationsPage({
   searchParams: Promise<{ id?: string; estado?: string }>;
 }) {
   const supabase = await createSupabaseServerClient();
-  const [{ data: { claims }, error: authError }, params] = await Promise.all([
+  const [{ data: claims, error: authError }, params] = await Promise.all([
     supabase.auth.getClaims(),
     searchParams,
   ]);
