@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-type MessageType =
+export type MessageType =
   | "text"
   | "image"
   | "audio"
