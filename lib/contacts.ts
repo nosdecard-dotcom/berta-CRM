@@ -1,42 +1,92 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-type NewContactInput = {
+type CustomerInput = {
   phone: string;
   name: string | null;
-  ctwaClid: string | null;
-  adSource: string | null;
+  source?: string;
 };
 
-export async function getOrCreateContact(
+export async function getOrCreateCustomer(
   supabase: SupabaseClient,
-  input: NewContactInput
+  input: CustomerInput
 ) {
-  const { data: existing } = await supabase
-    .from("contacts")
-    .select("*")
+  const { data: existing, error: lookupError } = await supabase
+    .from("customers")
+    .select("id, full_name, phone")
     .eq("phone", input.phone)
     .maybeSingle();
 
-  if (existing) return existing;
+  if (lookupError) throw lookupError;
+  if (existing) {
+    if (!existing.full_name && input.name) {
+      const { error } = await supabase
+        .from("customers")
+        .update({ full_name: input.name, last_contact_at: new Date().toISOString() })
+        .eq("id", existing.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase
+        .from("customers")
+        .update({ last_contact_at: new Date().toISOString() })
+        .eq("id", existing.id);
+      if (error) throw error;
+    }
+    return existing;
+  }
 
   const { data: created, error } = await supabase
-    .from("contacts")
+    .from("customers")
     .insert({
       phone: input.phone,
-      name: input.name,
-      ctwa_clid: input.ctwaClid,
-      ad_source: input.adSource,
+      full_name: input.name,
+      source: input.source ?? "whatsapp",
+      last_contact_at: new Date().toISOString(),
     })
-    .select("*")
+    .select("id, full_name, phone")
     .single();
 
   if (error) throw error;
   return created;
 }
 
-export async function isBotEnabledForContact(contact: {
-  bot_enabled?: boolean;
+export async function getOrCreateConversation(
+  supabase: SupabaseClient,
+  customerId: string,
+  whatsappContactId: string | null,
+  whatsappPhoneNumberId: string | null
+) {
+  const { data: existing, error: lookupError } = await supabase
+    .from("conversations")
+    .select("id, ai_enabled, status")
+    .eq("customer_id", customerId)
+    .in("status", ["open", "pending"])
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (lookupError) throw lookupError;
+  if (existing) return existing;
+
+  const { data: created, error } = await supabase
+    .from("conversations")
+    .insert({
+      customer_id: customerId,
+      channel: "whatsapp",
+      status: "open",
+      whatsapp_contact_id: whatsappContactId,
+      whatsapp_phone_number_id: whatsappPhoneNumberId,
+      ai_enabled: true,
+    })
+    .select("id, ai_enabled, status")
+    .single();
+
+  if (error) throw error;
+  return created;
+}
+
+export function isBotEnabledForConversation(conversation: {
+  ai_enabled?: boolean;
+  status?: string;
 }) {
-  // bot_enabled es true por default en el schema; si es explícitamente false, se respeta.
-  return contact.bot_enabled !== false;
+  return conversation.ai_enabled !== false && conversation.status !== "closed";
 }
