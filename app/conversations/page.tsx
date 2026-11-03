@@ -91,7 +91,8 @@ export default async function ConversationsPage({
           <span className="crm-brand-mark">B</span>
           <span><strong>BERTA AI CRM</strong><small>MARZOE · ATENCIÓN AL CLIENTE</small></span>
         </a>
-        <nav className="customers-nav"><a className="active" href="/conversations">Conversaciones</a><a href="/customers">Clientes</a></nav>\n        <div className="crm-header-actions">
+        <nav className="customers-nav"><a className="active" href="/conversations">Conversaciones</a><a href="/customers">Clientes</a></nav>
+        <div className="crm-header-actions">
           <span className="crm-role">{role}</span>
           <form action="/auth/signout" method="post"><button className="crm-logout" type="submit">Cerrar sesión</button></form>
         </div>
@@ -140,10 +141,12 @@ export default async function ConversationsPage({
                   </div>
                   <div className="thread-controls">
                     <span className={`status-pill ${selected.status}`}>{selected.status === "open" ? "Abierta" : selected.status === "pending" ? "Pendiente" : "Cerrada"}</span>
-                    <span className={selected.ai_enabled ? "ai-state enabled" : "ai-state"}>{selected.ai_enabled ? "Berta activa" : "Atención humana"}</span>\n                    <span className="assigned-label">Responsable: {selected.assigned_to ? (staffNames.get(selected.assigned_to) ?? "Agente asignado") : "Sin asignar"}</span>
+                    <span className={selected.ai_enabled ? "ai-state enabled" : "ai-state"}>{selected.ai_enabled ? "Berta activa" : "Atención humana"}</span>
+                    <span className="assigned-label">Responsable: {selected.assigned_to ? (staffNames.get(selected.assigned_to) ?? "Agente asignado") : "Sin asignar"}</span>
                   </div>
                 </header>
-                <div className="thread-notice">Canal WhatsApp <span>·</span> Actualizado {dateTime(selected.last_message_at)}</div>\n                <ConversationControls conversationId={selected.id} assignedTo={selected.assigned_to} aiEnabled={selected.ai_enabled} status={selected.status} role={role} staff={staff} />
+                <div className="thread-notice">Canal WhatsApp <span>·</span> Actualizado {dateTime(selected.last_message_at)}</div>
+                <ConversationControls conversationId={selected.id} assignedTo={selected.assigned_to} aiEnabled={selected.ai_enabled} status={selected.status} role={role} staff={staff} />
                 <div className="message-timeline">
                   {messagesError ? <div className="crm-alert">No fue posible cargar el historial de mensajes.</div> : messages.length ? messages.map((message) => (
                     <article key={message.id} className={message.direction === "outbound" ? "message-row outbound" : "message-row inbound"}>
