@@ -5,9 +5,9 @@ async function authorized() {
   const supabase = await createSupabaseServerClient();
   const { data: claims, error } = await supabase.auth.getClaims();
   if (error || !claims) return { response: NextResponse.json({ error: "Sesión no válida." }, { status: 401 }) };
-  const role = (claims.app_metadata as { role?: string } | undefined)?.role;
+  const role = (claims.claims.app_metadata as { role?: string } | undefined)?.role;
   if (!["admin", "manager", "agent"].includes(role ?? "")) return { response: NextResponse.json({ error: "Sin permisos." }, { status: 403 }) };
-  return { supabase, role, userId: String(claims.sub) };
+  return { supabase, role, userId: String(claims.claims.sub) };
 }
 
 function parse(body: Record<string, unknown>) {
