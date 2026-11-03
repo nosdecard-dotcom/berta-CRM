@@ -117,7 +117,7 @@ async function processWebhookValue(
       conversationId: conversation.id,
       direction: "inbound",
       body: normalized.body,
-      messageType: normalized.messageType,
+      messageType: normalized.messageType as import("@/lib/messages").MessageType,
       whatsappMessageId: message.id,
       deliveryStatus: "received",
       rawPayload: message,
