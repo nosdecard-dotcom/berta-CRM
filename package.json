@@ -1,0 +1,22 @@
+{
+  "name": "berta-crm",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "next": "16.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "@supabase/supabase-js": "2.118.0",
+    "@supabase/ssr": "0.12.7"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0"
+  }
+}
