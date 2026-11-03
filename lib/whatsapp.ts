@@ -4,6 +4,10 @@ export async function sendWhatsAppMessage(to: string, text: string) {
   const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
   const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
 
+  if (!phoneNumberId || !accessToken) {
+    throw new Error("Faltan WHATSAPP_PHONE_NUMBER_ID o WHATSAPP_ACCESS_TOKEN.");
+  }
+
   const res = await fetch(
     `https://graph.facebook.com/${GRAPH_VERSION}/${phoneNumberId}/messages`,
     {
@@ -14,17 +18,17 @@ export async function sendWhatsAppMessage(to: string, text: string) {
       },
       body: JSON.stringify({
         messaging_product: "whatsapp",
+        recipient_type: "individual",
         to,
         type: "text",
-        text: { body: text },
+        text: { preview_url: false, body: text },
       }),
     }
   );
 
   if (!res.ok) {
     const errText = await res.text();
-    console.error(`Error enviando WhatsApp a ${to}: ${errText}`);
-    return null;
+    throw new Error(`WhatsApp Cloud API error ${res.status}: ${errText}`);
   }
 
   return res.json() as Promise<{ messages?: { id: string }[] }>;
