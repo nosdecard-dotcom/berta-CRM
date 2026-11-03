@@ -1,40 +1,51 @@
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const MODEL = "deepseek/deepseek-chat-v3-0324";
 
-const REGLAS_IRROMPIBLES = `
-Reglas que NUNCA podés romper, pase lo que pase:
-- Responder SIEMPRE en español argentino (voseo), nunca en otro idioma.
-- Si es la primera respuesta a un contacto nuevo: preguntar qué quiere lograr, no listar servicios.
-- Mensajes cortos (menos de 30 palabras), máximo 2 emojis, sin markdown, sin listas, texto corrido.
-- Nunca inventar precios de servicios de la agencia ni datos falsos.
-- Si el usuario expresa molestia o enojo, avisar que lo vas a derivar a una persona del equipo.
-- Solo mandar el link de Calendly cuando hay interés REAL (no antes).
-- Nunca pedir el email del usuario.
+const MARZOE_SYSTEM_PROMPT = `
+Sos Berta, la asistente virtual de MARZOE, una tienda virtual de Cochabamba, Bolivia,
+especializada en productos profesionales Wella. MARZOE es distribuidora autorizada
+por Belmed (Wella Bolivia).
+
+Hablá en español boliviano natural, cordial, claro y profesional. Evitá el voseo
+argentino y expresiones de otros países. Mantené respuestas breves y cálidas.
+
+Información comercial confirmada:
+- MARZOE funciona como tienda virtual; no afirmés que tiene tienda física.
+- Realiza envíos a todo Bolivia y entrega hasta la puerta del domicilio.
+- Catálogo de WhatsApp: https://wa.me/c/59162603800
+
+Reglas obligatorias:
+- No inventés precios, promociones, disponibilidad, stock, tiempos ni características
+  que no estén confirmados en el catálogo o en la información disponible.
+- Si preguntan precio o stock y no tenés el dato, ofrecé verificarlo con una persona
+  del equipo. No adivinés.
+- Compartí el enlace del catálogo solo cuando la persona muestre interés en conocer
+  productos o revisar opciones.
+- No pidás correo electrónico.
+- Si la persona expresa molestia, reclama o solicita atención humana, disculpate
+  brevemente e indicá que será atendida por una persona del equipo.
+- No confirmés pedidos, pagos ni despachos sin verificación humana.
+- Hacé una pregunta concreta cuando falte información para orientar la compra.
+- Usá como máximo dos emojis y evitá listas largas.
 `.trim();
 
-type ChatMessage = { role: "user" | "assistant"; content: string };
+export type ChatMessage = { role: "user" | "assistant"; content: string };
 
 export async function generateBertaReply({
   history,
   userMessage,
-  systemPromptOverride,
 }: {
   history: ChatMessage[];
   userMessage: string;
-  systemPromptOverride?: string;
 }) {
-  const basePrompt =
-    systemPromptOverride ??
-    "Sos Berta, la asistente comercial de la agencia. Hablás en español argentino, con voseo, de forma cercana y breve.";
-
-  const systemPrompt = `${basePrompt}\n\n${REGLAS_IRROMPIBLES}`;
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) throw new Error("Falta configurar OPENROUTER_API_KEY.");
 
   const messages = [
-    { role: "system", content: systemPrompt },
-    ...history.map((m) => ({ role: m.role, content: m.content })),
+    { role: "system", content: MARZOE_SYSTEM_PROMPT },
+    ...history.map((message) => ({ role: message.role, content: message.content })),
   ];
 
-  // Si el último mensaje del historial ya es este userMessage (por el insert previo), no lo duplicamos.
   const last = history[history.length - 1];
   if (!last || last.content !== userMessage) {
     messages.push({ role: "user", content: userMessage });
@@ -43,60 +54,16 @@ export async function generateBertaReply({
   const res = await fetch(OPENROUTER_URL, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+      Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
+      "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL ?? "https://marzoe.com",
+      "X-Title": "BERTA AI CRM - MARZOE",
     },
     body: JSON.stringify({
       model: MODEL,
       messages,
-      temperature: 0.7,
-      max_tokens: 200,
-    }),
-  });
-
-  if (!res.ok) {
-    const errText = await res.text();
-    throw new Error(`OpenRouter error ${res.status}: ${errText}`);
-  }
-
-  const data = await res.json();
-  const reply = data?.choices?.[0]?.message?.content?.trim();
-
-  return reply || "Perdón, se me cruzaron los cables. ¿Me repetís eso?";
-}
-
-/**
- * Usado por el cron de calificación de leads: le pide al modelo que
- * devuelva SOLO un JSON clasificando la conversación.
- */
-export async function classifyLead(history: ChatMessage[]) {
-  const prompt = `
-Analizá esta conversación de WhatsApp entre un cliente potencial y una agencia.
-Clasificala como "hot", "warm" o "cold":
-- hot: interés real en contratar, preguntó por precios o quiere agendar una reunión.
-- warm: mostró interés pero no llegó a querer agendar nada.
-- cold: sin interés real, spam, busca empleo, o solo curiosidad.
-
-Respondé SOLO con un JSON válido, sin texto adicional, con este formato exacto:
-{"score": "hot" | "warm" | "cold", "reason": "explicación breve en español, menos de 20 palabras"}
-`.trim();
-
-  const messages = [
-    { role: "system", content: prompt },
-    ...history.map((m) => ({ role: m.role, content: m.content })),
-  ];
-
-  const res = await fetch(OPENROUTER_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      messages,
-      temperature: 0.2,
-      max_tokens: 100,
+      temperature: 0.4,
+      max_tokens: 180,
     }),
   });
 
@@ -105,13 +72,14 @@ Respondé SOLO con un JSON válido, sin texto adicional, con este formato exacto
   }
 
   const data = await res.json();
-  const raw = data?.choices?.[0]?.message?.content?.trim() ?? "{}";
+  const reply = data?.choices?.[0]?.message?.content?.trim();
+  return reply || "Disculpá, en este momento no pude procesar tu consulta. ¿Podrías repetirla?";
+}
 
-  try {
-    // Por si el modelo envuelve el JSON en ```json ... ```
-    const clean = raw.replace(/```json|```/g, "").trim();
-    return JSON.parse(clean) as { score: "hot" | "warm" | "cold"; reason: string };
-  } catch {
-    return { score: "cold" as const, reason: "No se pudo clasificar automáticamente." };
-  }
+/**
+ * Regla conservadora para pausar la IA cuando el cliente pide atención humana
+ * o expresa un reclamo claro. La conversación queda disponible para el equipo.
+ */
+export function shouldEscalateToHuman(message: string) {
+  return /\b(persona|asesor|asesora|vendedor|vendedora|humano|encargado|reclamo|queja|denuncia|estafa|molest[oa]|enojad[oa]|pésim[oa]|pesim[oa]|no me responden|quiero hablar con alguien)\b/i.test(message);
 }
