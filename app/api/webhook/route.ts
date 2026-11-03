@@ -132,6 +132,12 @@ async function processWebhookValue(
       .eq("id", conversation.id);
     if (conversationUpdateError) throw conversationUpdateError;
 
+    const { error: customerUpdateError } = await supabase
+      .from("customers")
+      .update({ last_contact_at: new Date().toISOString() })
+      .eq("id", customer.id);
+    if (customerUpdateError) throw customerUpdateError;
+
     if (!isBotEnabledForConversation(conversation)) continue;
 
     if (shouldEscalateToHuman(normalized.body ?? "")) {
