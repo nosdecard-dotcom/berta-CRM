@@ -3,7 +3,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/ssr-server";
 
 export async function POST(req: NextRequest) {
   const supabase = await createSupabaseServerClient();
-  const { data: { claims }, error } = await supabase.auth.getClaims();
+  const { data: claims, error } = await supabase.auth.getClaims();
   if (error || !claims) return NextResponse.json({ error: "Sesión no válida." }, { status: 401 });
 
   const role = (claims.app_metadata as { role?: string } | undefined)?.role;
