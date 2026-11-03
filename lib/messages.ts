@@ -1,26 +1,52 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export async function saveIncomingMessage(
+type SaveMessageInput = {
+  conversationId: string;
+  direction: "inbound" | "outbound";
+  body: string | null;
+  whatsappMessageId?: string | null;
+  deliveryStatus?: "received" | "queued" | "sent" | "delivered" | "read" | "failed";
+  aiGenerated?: boolean;
+  rawPayload?: unknown;
+};
+
+export async function saveMessage(
   supabase: SupabaseClient,
-  contactId: string,
-  role: "user" | "assistant",
-  content: string
+  input: SaveMessageInput
 ) {
-  const { error } = await supabase.from("messages").insert({
-    contact_id: contactId,
-    role,
-    content,
-  });
+  const row = {
+    conversation_id: input.conversationId,
+    direction: input.direction,
+    message_type: "text",
+    body: input.body,
+    whatsapp_message_id: input.whatsappMessageId ?? null,
+    delivery_status: input.deliveryStatus ?? (input.direction === "inbound" ? "received" : "queued"),
+    ai_generated: input.aiGenerated ?? false,
+    raw_payload: input.rawPayload ?? null,
+  };
+
+  if (input.whatsappMessageId) {
+    const { data, error } = await supabase
+      .from("messages")
+      .upsert(row, { onConflict: "whatsapp_message_id", ignoreDuplicates: true })
+      .select("id")
+      .maybeSingle();
+    if (error) throw error;
+    return { inserted: Boolean(data), id: data?.id ?? null };
+  }
+
+  const { data, error } = await supabase
+    .from("messages")
+    .insert(row)
+    .select("id")
+    .single();
   if (error) throw error;
+  return { inserted: true, id: data.id };
 }
 
-/**
- * Actualiza el status de un mensaje saliente (sent -> delivered -> read),
- * matcheando por el whatsapp_message_id (wamid) que devuelve Meta.
- */
 export async function updateMessageStatus(
   supabase: SupabaseClient,
-  wamid: string,
+  whatsappMessageId: string,
   status: string
 ) {
   const validStatuses = ["sent", "delivered", "read", "failed"];
@@ -28,8 +54,8 @@ export async function updateMessageStatus(
 
   const { error } = await supabase
     .from("messages")
-    .update({ status })
-    .eq("whatsapp_message_id", wamid);
+    .update({ delivery_status: status })
+    .eq("whatsapp_message_id", whatsappMessageId);
 
-  if (error) console.error("Error actualizando status de mensaje:", error);
+  if (error) throw error;
 }
