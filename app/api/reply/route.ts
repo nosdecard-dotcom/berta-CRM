@@ -10,8 +10,8 @@ export async function POST(req: NextRequest) {
   const { data: claims, error: authError } = await supabase.auth.getClaims();
   if (authError || !claims) return NextResponse.json({ error: "Sesión no válida." }, { status: 401 });
 
-  const role = (claims.app_metadata as { role?: string } | undefined)?.role;
-  const userId = typeof claims.sub === "string" ? claims.sub : null;
+  const role = (claims.claims.app_metadata as { role?: string } | undefined)?.role;
+  const userId = typeof claims.claims.sub === "string" ? claims.claims.sub : null;
   if (!userId || !["admin", "manager", "agent"].includes(role ?? "")) {
     return NextResponse.json({ error: "Sin permisos." }, { status: 403 });
   }
