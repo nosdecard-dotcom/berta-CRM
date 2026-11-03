@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - feat/marzoe-supabase-integration
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install
+      - name: TypeScript check
+        run: npx tsc --noEmit
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: placeholder
+      - name: Production build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: placeholder
+          SUPABASE_URL: https://example.supabase.co
+          SUPABASE_SECRET_KEY: placeholder
+          WHATSAPP_PHONE_NUMBER_ID: placeholder
+          WHATSAPP_ACCESS_TOKEN: placeholder
+          WHATSAPP_VERIFY_TOKEN: placeholder
+          WHATSAPP_APP_SECRET: placeholder
+          OPENROUTER_API_KEY: placeholder
