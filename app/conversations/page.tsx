@@ -43,7 +43,7 @@ export default async function ConversationsPage({
 
   if (authError || !claims) redirect("/login");
 
-  const metadata = (claims.app_metadata ?? {}) as { role?: string };
+  const metadata = (claims.claims.app_metadata ?? {}) as { role?: string };
   const role = metadata.role ?? "sin asignar";
   if (!["admin", "manager", "agent"].includes(role)) redirect("/");
 
@@ -74,7 +74,7 @@ export default async function ConversationsPage({
     else messages = (data ?? []) as MessageRow[];
   }
 
-  const userId = typeof claims.sub === "string" ? claims.sub : "";
+  const userId = typeof claims.claims.sub === "string" ? claims.claims.sub : "";
   let staffQuery = supabase.from("profiles").select("id,full_name,role").eq("is_active", true);
   if (role === "agent") staffQuery = staffQuery.eq("id", userId);
   const { data: staffRows } = await staffQuery.order("full_name");
