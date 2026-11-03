@@ -30,7 +30,7 @@ export async function updateSupabaseSession(request: NextRequest) {
     },
   });
 
-  const { data: { claims }, error } = await supabase.auth.getClaims();
+  const { data: claims, error } = await supabase.auth.getClaims();
   if ((!claims || error) && !isLogin && !isSignout) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", request.nextUrl.pathname);
