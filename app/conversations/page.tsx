@@ -91,7 +91,7 @@ export default async function ConversationsPage({
           <span className="crm-brand-mark">B</span>
           <span><strong>BERTA AI CRM</strong><small>MARZOE · ATENCIÓN AL CLIENTE</small></span>
         </a>
-        <div className="crm-header-actions">
+        <nav className="customers-nav"><a className="active" href="/conversations">Conversaciones</a><a href="/customers">Clientes</a></nav>\n        <div className="crm-header-actions">
           <span className="crm-role">{role}</span>
           <form action="/auth/signout" method="post"><button className="crm-logout" type="submit">Cerrar sesión</button></form>
         </div>
