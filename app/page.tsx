@@ -9,7 +9,7 @@ export default async function Home() {
 
   if (error || !claims) redirect("/login");
 
-  const metadata = (claims.app_metadata ?? {}) as { role?: string };
+  const metadata = (claims.claims.app_metadata ?? {}) as { role?: string };
   if (["admin", "manager", "agent"].includes(metadata.role ?? "")) {
     redirect("/conversations");
   }
