@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/ssr-server";
 import ReplyComposer from "./reply-composer";
+import ConversationControls from "./conversation-controls";
 
 export const dynamic = "force-dynamic";
 
@@ -73,6 +74,11 @@ export default async function ConversationsPage({
     else messages = (data ?? []) as MessageRow[];
   }
 
+  const { data: staffRows } = ["admin", "manager"].includes(role)
+    ? await supabase.from("profiles").select("id,full_name,role").eq("is_active", true).order("full_name")
+    : { data: [] as { id: string; full_name: string; role: string }[] };
+  const staff = (staffRows ?? []) as { id: string; full_name: string; role: string }[];
+
   const customerName = (customer: ConversationRow["customer"]) =>
     customer?.full_name?.trim() || customer?.phone || "Cliente sin nombre";
 
@@ -135,7 +141,7 @@ export default async function ConversationsPage({
                     <span className={selected.ai_enabled ? "ai-state enabled" : "ai-state"}>{selected.ai_enabled ? "Berta activa" : "Atención humana"}</span>
                   </div>
                 </header>
-                <div className="thread-notice">Canal WhatsApp <span>·</span> Actualizado {dateTime(selected.last_message_at)}</div>
+                <div className="thread-notice">Canal WhatsApp <span>·</span> Actualizado {dateTime(selected.last_message_at)}</div>\n                <ConversationControls conversationId={selected.id} assignedTo={selected.assigned_to} aiEnabled={selected.ai_enabled} status={selected.status} role={role} staff={staff} />
                 <div className="message-timeline">
                   {messagesError ? <div className="crm-alert">No fue posible cargar el historial de mensajes.</div> : messages.length ? messages.map((message) => (
                     <article key={message.id} className={message.direction === "outbound" ? "message-row outbound" : "message-row inbound"}>
