@@ -119,3 +119,13 @@ code { font-family: ui-monospace, monospace; }
 .composer-actions button:disabled { opacity:.55; cursor:not-allowed; }
 .composer-error { margin:9px 0 0; color:#a13c2f; font-size:11px; line-height:1.5; }
 .composer-disabled { margin:0; color:var(--muted); font-size:11px; text-align:center; }
+
+
+.conversation-controls { display:flex; align-items:center; flex-wrap:wrap; gap:8px; padding:10px 18px; background:#fbfcfa; border-bottom:1px solid var(--line); }
+.assign-control { display:flex; align-items:center; gap:7px; color:var(--muted); font-size:10px; }
+.assign-control select { max-width:220px; min-height:32px; padding:0 9px; border:1px solid var(--line); border-radius:7px; background:#fff; color:var(--ink); font-size:10px; }
+.control-button { min-height:32px; padding:0 11px; border:1px solid #d8e3da; border-radius:7px; background:#edf4ee; color:var(--green); font-size:10px; font-weight:700; cursor:pointer; }
+.control-button.secondary { border-color:var(--line); background:#fff; color:var(--muted); }
+.control-button:disabled,.assign-control select:disabled { opacity:.55; cursor:wait; }
+.control-error { width:100%; color:#a13c2f; font-size:10px; }
+@media(max-width:620px) { .conversation-controls { align-items:stretch; }.assign-control { width:100%; justify-content:space-between; }.assign-control select { flex:1; max-width:none; } }
