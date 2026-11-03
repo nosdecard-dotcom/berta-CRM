@@ -1,9 +1,21 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+type MessageType =
+  | "text"
+  | "image"
+  | "audio"
+  | "video"
+  | "document"
+  | "location"
+  | "template"
+  | "interactive"
+  | "unknown";
+
 type SaveMessageInput = {
   conversationId: string;
   direction: "inbound" | "outbound";
   body: string | null;
+  messageType?: MessageType;
   whatsappMessageId?: string | null;
   deliveryStatus?: "received" | "queued" | "sent" | "delivered" | "read" | "failed";
   aiGenerated?: boolean;
@@ -17,10 +29,12 @@ export async function saveMessage(
   const row = {
     conversation_id: input.conversationId,
     direction: input.direction,
-    message_type: "text",
+    message_type: input.messageType ?? "text",
     body: input.body,
     whatsapp_message_id: input.whatsappMessageId ?? null,
-    delivery_status: input.deliveryStatus ?? (input.direction === "inbound" ? "received" : "queued"),
+    delivery_status:
+      input.deliveryStatus ??
+      (input.direction === "inbound" ? "received" : "queued"),
     ai_generated: input.aiGenerated ?? false,
     raw_payload: input.rawPayload ?? null,
   };
@@ -28,9 +42,13 @@ export async function saveMessage(
   if (input.whatsappMessageId) {
     const { data, error } = await supabase
       .from("messages")
-      .upsert(row, { onConflict: "whatsapp_message_id", ignoreDuplicates: true })
+      .upsert(row, {
+        onConflict: "whatsapp_message_id",
+        ignoreDuplicates: true,
+      })
       .select("id")
       .maybeSingle();
+
     if (error) throw error;
     return { inserted: Boolean(data), id: data?.id ?? null };
   }
@@ -40,6 +58,7 @@ export async function saveMessage(
     .insert(row)
     .select("id")
     .single();
+
   if (error) throw error;
   return { inserted: true, id: data.id };
 }
