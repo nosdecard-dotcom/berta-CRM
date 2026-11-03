@@ -7,7 +7,7 @@ const WINDOW_MS = 24 * 60 * 60 * 1000;
 
 export async function POST(req: NextRequest) {
   const supabase = await createSupabaseServerClient();
-  const { data: { claims }, error: authError } = await supabase.auth.getClaims();
+  const { data: claims, error: authError } = await supabase.auth.getClaims();
   if (authError || !claims) return NextResponse.json({ error: "Sesión no válida." }, { status: 401 });
 
   const role = (claims.app_metadata as { role?: string } | undefined)?.role;
