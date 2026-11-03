@@ -108,3 +108,14 @@ code { font-family: ui-monospace, monospace; }
 .crm-alert { margin:16px; padding:13px; border-radius:9px; background:#fff2ee; color:#8a3e2e; font-size:12px; }
 @media(max-width:850px) { .crm-shell { padding:18px 14px 28px; }.inbox-layout { grid-template-columns: minmax(250px, 34%) minmax(0,1fr); }.thread-header { align-items:flex-start; flex-direction:column; }.thread-controls { justify-content:flex-start; } }
 @media(max-width:620px) { .crm-heading { align-items:flex-start; }.crm-summary { display:none; }.inbox-layout { display:flex; flex-direction:column; height:auto; max-height:none; }.conversation-panel { max-height:390px; border-right:0; border-bottom:1px solid var(--line); }.thread-panel { min-height:480px; }.thread-footer { flex-direction:column; }.crm-role { display:none; } }
+
+
+.reply-composer-wrap { padding:14px 18px; border-top:1px solid var(--line); background:#fff; }
+.reply-composer { display:grid; gap:10px; }
+.reply-composer textarea { width:100%; resize:vertical; min-height:62px; max-height:180px; padding:12px 13px; border:1px solid var(--line); border-radius:10px; outline:none; color:var(--ink); font:12px/1.5 Arial, sans-serif; }
+.reply-composer textarea:focus { border-color:var(--green); box-shadow:0 0 0 3px rgba(41,77,61,.08); }
+.composer-actions { display:flex; align-items:center; justify-content:space-between; gap:12px; color:var(--muted); font-size:10px; }
+.composer-actions button { min-height:38px; padding:0 16px; border:0; border-radius:8px; background:var(--green); color:#fff; font-size:11px; font-weight:700; cursor:pointer; }
+.composer-actions button:disabled { opacity:.55; cursor:not-allowed; }
+.composer-error { margin:9px 0 0; color:#a13c2f; font-size:11px; line-height:1.5; }
+.composer-disabled { margin:0; color:var(--muted); font-size:11px; text-align:center; }
