@@ -6,16 +6,17 @@ export async function updateSupabaseSession(request: NextRequest) {
   const isLogin = request.nextUrl.pathname.startsWith("/login");
   const isSignout = request.nextUrl.pathname.startsWith("/auth/signout");
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const publicKey =
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!url || !anonKey) {
-    // Keep the login screen reachable so configuration errors are visible.
+  if (!url || !publicKey) {
     if (isLogin) return response;
     const loginUrl = new URL("/login?error=config", request.url);
     return NextResponse.redirect(loginUrl);
   }
 
-  const supabase = createServerClient(url, anonKey, {
+  const supabase = createServerClient(url, publicKey, {
     cookies: {
       getAll() {
         return request.cookies.getAll();
@@ -36,9 +37,6 @@ export async function updateSupabaseSession(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (claims && isLogin) {
-    return NextResponse.redirect(new URL("/", request.url));
-  }
-
+  if (claims && isLogin) return NextResponse.redirect(new URL("/", request.url));
   return response;
 }
