@@ -74,10 +74,12 @@ export default async function ConversationsPage({
     else messages = (data ?? []) as MessageRow[];
   }
 
-  const { data: staffRows } = ["admin", "manager"].includes(role)
-    ? await supabase.from("profiles").select("id,full_name,role").eq("is_active", true).order("full_name")
-    : { data: [] as { id: string; full_name: string; role: string }[] };
+  const userId = typeof claims.sub === "string" ? claims.sub : "";
+  let staffQuery = supabase.from("profiles").select("id,full_name,role").eq("is_active", true);
+  if (role === "agent") staffQuery = staffQuery.eq("id", userId);
+  const { data: staffRows } = await staffQuery.order("full_name");
   const staff = (staffRows ?? []) as { id: string; full_name: string; role: string }[];
+  const staffNames = new Map(staff.map((person) => [person.id, person.full_name || person.role]));
 
   const customerName = (customer: ConversationRow["customer"]) =>
     customer?.full_name?.trim() || customer?.phone || "Cliente sin nombre";
@@ -138,7 +140,7 @@ export default async function ConversationsPage({
                   </div>
                   <div className="thread-controls">
                     <span className={`status-pill ${selected.status}`}>{selected.status === "open" ? "Abierta" : selected.status === "pending" ? "Pendiente" : "Cerrada"}</span>
-                    <span className={selected.ai_enabled ? "ai-state enabled" : "ai-state"}>{selected.ai_enabled ? "Berta activa" : "Atención humana"}</span>
+                    <span className={selected.ai_enabled ? "ai-state enabled" : "ai-state"}>{selected.ai_enabled ? "Berta activa" : "Atención humana"}</span>\n                    <span className="assigned-label">Responsable: {selected.assigned_to ? (staffNames.get(selected.assigned_to) ?? "Agente asignado") : "Sin asignar"}</span>
                   </div>
                 </header>
                 <div className="thread-notice">Canal WhatsApp <span>·</span> Actualizado {dateTime(selected.last_message_at)}</div>\n                <ConversationControls conversationId={selected.id} assignedTo={selected.assigned_to} aiEnabled={selected.ai_enabled} status={selected.status} role={role} staff={staff} />
