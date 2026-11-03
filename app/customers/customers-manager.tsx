@@ -12,7 +12,8 @@ type Staff = { id: string; full_name: string; role: string };
 const empty = { full_name: "", phone: "", email: "", city: "", notes: "", source: "whatsapp", tags: "", assigned_to: "" };
 const dateLabel = (value: string | null) => value ? new Intl.DateTimeFormat("es-BO", { dateStyle: "medium" }).format(new Date(value)) : "Sin contacto";
 
-export default function CustomersManager({ customers, staff, role }: { customers: Customer[]; staff: Staff[]; role: string }) {
+type HistoryItem = { id: string; status: string; channel: string; last_message_at: string | null; message_count: number };
+export default function CustomersManager({ customers, staff, role, selectedCustomer, history }: { customers: Customer[]; staff: Staff[]; role: string; selectedCustomer: Customer | null; history: HistoryItem[] }) {
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<Customer | null>(null);
   const [form, setForm] = useState(empty);
@@ -54,9 +55,16 @@ export default function CustomersManager({ customers, staff, role }: { customers
       </form>
     </div>}
     <div className="customers-table-wrap"><table className="customers-table"><thead><tr><th>Cliente</th><th>Teléfono</th><th>Ciudad</th><th>Procedencia</th><th>Etiquetas</th><th>Último contacto</th><th></th></tr></thead><tbody>
-      {filtered.map((c) => <tr key={c.id}><td><strong>{c.full_name}</strong><small>{c.email || "Sin correo"}</small></td><td>{c.phone}</td><td>{c.city || "—"}</td><td>{c.source}</td><td><div className="customer-tags">{(c.tags ?? []).map((tag) => <span key={tag}>{tag}</span>)}</div></td><td>{dateLabel(c.last_contact_at)}</td><td><button type="button" className="edit-customer" onClick={() => openEdit(c)}>Editar</button><a className="edit-customer" href={`/conversations?phone=${encodeURIComponent(c.phone)}`}>Chat</a></td></tr>)}
+      {filtered.map((c) => <tr key={c.id}><td><strong>{c.full_name}</strong><small>{c.email || "Sin correo"}</small></td><td>{c.phone}</td><td>{c.city || "—"}</td><td>{c.source}</td><td><div className="customer-tags">{(c.tags ?? []).map((tag) => <span key={tag}>{tag}</span>)}</div></td><td>{dateLabel(c.last_contact_at)}</td><td><a className="edit-customer" href={`/customers?cliente=${c.id}`}>Ficha</a><button type="button" className="edit-customer" onClick={() => openEdit(c)}>Editar</button></td></tr>)}
       {filtered.length === 0 && <tr><td colSpan={7} className="customers-empty">No se encontraron clientes.</td></tr>}
     </tbody></table></div>
-    <p className="customers-footnote">Se muestran hasta 200 registros. El historial de WhatsApp se conserva en el módulo de conversaciones.</p>
+    {selectedCustomer && <section className="customer-detail-card">
+      <div className="panel-title"><div><p className="eyebrow">FICHA DEL CLIENTE</p><h2>{selectedCustomer.full_name}</h2><p>{selectedCustomer.phone} · {selectedCustomer.city || "Ciudad no registrada"}</p></div><a className="edit-customer" href="/customers">Cerrar ficha</a></div>
+      <div className="customer-detail-grid"><div><span>Procedencia</span><strong>{selectedCustomer.source}</strong></div><div><span>Registrado</span><strong>{dateLabel(selectedCustomer.created_at)}</strong></div><div><span>Último contacto</span><strong>{dateLabel(selectedCustomer.last_contact_at)}</strong></div><div><span>Etiquetas / intereses anotados</span><strong>{(selectedCustomer.tags ?? []).join(", ") || "Sin etiquetas"}</strong></div></div>
+      {selectedCustomer.notes && <p className="customer-notes"><strong>Notas:</strong> {selectedCustomer.notes}</p>}
+      <h3>Historial de conversaciones</h3>
+      {history.length ? <div className="customer-history">{history.map((item) => <a key={item.id} href={`/conversations?id=${item.id}`}><span><strong>{item.channel === "whatsapp" ? "WhatsApp" : item.channel}</strong><small>{item.message_count} mensajes · {dateLabel(item.last_message_at)}</small></span><span className={`status-pill ${item.status}`}>{item.status === "open" ? "Abierta" : item.status === "pending" ? "Pendiente" : "Cerrada"}</span></a>)}</div> : <p className="customers-footnote">Este cliente todavía no tiene conversaciones registradas.</p>}
+    </section>}
+    <p className="customers-footnote">Se muestran hasta 200 registros. Los intereses comerciales se pueden registrar mediante etiquetas y notas hasta implementar el catálogo conectado.</p>
   </section>;
 }
