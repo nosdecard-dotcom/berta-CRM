@@ -9,7 +9,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Se
   const supabase = await createSupabaseServerClient();
   const [{ data: claims, error }, params] = await Promise.all([supabase.auth.getClaims(), searchParams]);
   if (error || !claims) redirect("/login");
-  const role = (claims.app_metadata as { role?: string } | undefined)?.role ?? "";
+  const role = (claims.claims.app_metadata as { role?: string } | undefined)?.role ?? "";
   if (!["admin", "manager", "agent"].includes(role)) redirect("/");
 
   const [{ data: customers, error: customersError }, { data: staff }] = await Promise.all([
