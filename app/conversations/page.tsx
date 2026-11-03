@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/ssr-server";
+import ReplyComposer from "./reply-composer";
 
 export const dynamic = "force-dynamic";
 
@@ -145,7 +146,7 @@ export default async function ConversationsPage({
                     </article>
                   )) : <div className="empty-thread"><strong>Aún no hay mensajes</strong><p>El historial de esta conversación aparecerá en este espacio.</p></div>}
                 </div>
-                <footer className="thread-footer"><span>La respuesta desde el CRM se habilitará en la siguiente etapa.</span><span>WhatsApp · MARZOE</span></footer>
+                <ReplyComposer conversationId={selected.id} disabled={selected.status === "closed"} />
               </>
             ) : (
               <div className="empty-thread"><span className="empty-icon">B</span><strong>Tu bandeja está lista</strong><p>Selecciona una conversación para revisar el historial de atención.</p></div>
