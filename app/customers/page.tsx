@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/ssr-server";
 import CustomersManager from "./customers-manager";
+import CrmSidebar from "@/app/components/crm-sidebar";
 
 export const dynamic = "force-dynamic";
 type Search = Promise<{ cliente?: string }>;
@@ -26,7 +27,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Se
     }));
   }
 
-  return <main className="customers-shell">
+  return <div className="workspace-layout"><CrmSidebar role={role}/><div className="workspace-main"><main className="customers-shell">
     <header className="crm-header">
       <a className="crm-brand" href="/conversations"><span className="crm-brand-mark">B</span><span><strong>BERTA AI CRM</strong><small>MARZOE · ATENCIÓN AL CLIENTE</small></span></a>
       <nav className="customers-nav"><a href="/conversations">Conversaciones</a><a className="active" href="/customers">Clientes</a></nav>
@@ -37,5 +38,5 @@ export default async function CustomersPage({ searchParams }: { searchParams: Se
     </section>
     {customersError ? <div className="crm-alert">No fue posible cargar los clientes. Verifica tus permisos.</div> :
       <CustomersManager customers={customers ?? []} staff={staff ?? []} role={role} selectedCustomer={selectedCustomer} history={history} />}
-  </main>;
+  </main></div></div>;
 }
