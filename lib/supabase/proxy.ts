@@ -4,6 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 export async function updateSupabaseSession(request: NextRequest) {
   let response = NextResponse.next({ request });
   const isLogin = request.nextUrl.pathname.startsWith("/login");
+  const isPasswordReset = request.nextUrl.pathname.startsWith("/reset-password");
   const isSignout = request.nextUrl.pathname.startsWith("/auth/signout");
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const publicKey =
@@ -11,7 +12,7 @@ export async function updateSupabaseSession(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!url || !publicKey) {
-    if (isLogin) return response;
+    if (isLogin || isPasswordReset) return response;
     const loginUrl = new URL("/login?error=config", request.url);
     return NextResponse.redirect(loginUrl);
   }
@@ -31,7 +32,7 @@ export async function updateSupabaseSession(request: NextRequest) {
   });
 
   const { data: claims, error } = await supabase.auth.getClaims();
-  if ((!claims || error) && !isLogin && !isSignout) {
+  if ((!claims || error) && !isLogin && !isPasswordReset && !isSignout) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", request.nextUrl.pathname);
     return NextResponse.redirect(loginUrl);
