@@ -20,10 +20,11 @@ export default function CustomersManager({ customers, staff, role, selectedCusto
   const [showForm, setShowForm] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const router = useRouter();
   const filtered = useMemo(() => customers.filter((c) => [c.full_name, c.phone, c.email ?? "", c.city ?? "", ...(c.tags ?? [])].join(" ").toLowerCase().includes(query.toLowerCase())), [customers, query]);
 
-  function openNew() { setEditing(null); setForm(empty); setError(""); setShowForm(true); }
+  function openNew() { setNotice(""); setEditing(null); setForm(empty); setError(""); setShowForm(true); }
   function openEdit(c: Customer) {
     setEditing(c); setForm({ full_name: c.full_name, phone: c.phone, email: c.email ?? "", city: c.city ?? "", notes: c.notes ?? "", source: c.source, tags: (c.tags ?? []).join(", "), assigned_to: c.assigned_to ?? "" }); setError(""); setShowForm(true);
   }
@@ -33,17 +34,18 @@ export default function CustomersManager({ customers, staff, role, selectedCusto
       const response = await fetch("/api/customers", { method: editing ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...(editing ? { id: editing.id } : {}), ...form, tags: form.tags.split(",").map((v) => v.trim()).filter(Boolean), assigned_to: form.assigned_to || null }) });
       const result = await response.json();
       if (!response.ok) { setError(result.error ?? "No se pudo guardar el cliente."); return; }
-      setShowForm(false); router.refresh();
+      setShowForm(false); setNotice(editing ? "Cliente actualizado correctamente." : "Cliente registrado correctamente."); router.refresh();
     } catch { setError("No se pudo conectar con el servidor."); }
     finally { setBusy(false); }
   }
 
   return <section className="customers-content">
+    {notice && <p role="status" className="customer-success">{notice}</p>}
     <div className="customers-toolbar"><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar por nombre, teléfono, ciudad o etiqueta..." aria-label="Buscar clientes" /><button type="button" onClick={openNew}>+ Nuevo cliente</button></div>
     {showForm && <div className="customer-form-card"><div className="panel-title"><h2>{editing ? "Editar cliente" : "Registrar cliente"}</h2><button className="form-close" type="button" onClick={() => setShowForm(false)}>Cerrar</button></div>
       <form onSubmit={save} className="customer-form">
         <label>Nombre completo<input required maxLength={120} value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></label>
-        <label>Teléfono WhatsApp<input required maxLength={30} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></label>
+        <label>Teléfono WhatsApp<input required maxLength={30} type="tel" placeholder="+591XXXXXXXX" title="Ingresa el código del país y el número, por ejemplo +591XXXXXXXX" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></label>
         <label>Correo electrónico<input type="email" maxLength={150} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></label>
         <label>Ciudad<input maxLength={80} value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} /></label>
         <label>Procedencia<select value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })}><option value="whatsapp">WhatsApp</option><option value="instagram">Instagram</option><option value="facebook">Facebook</option><option value="marketplace">Marketplace</option><option value="referido">Referido</option><option value="otro">Otro</option></select></label>
