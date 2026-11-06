@@ -12,10 +12,10 @@ async function authorized() {
 
 function parse(body: Record<string, unknown>) {
   const full_name = typeof body.full_name === "string" ? body.full_name.trim() : "";
-  const phone = typeof body.phone === "string" ? body.phone.trim().replace(/[\\s()-]/g, "") : "";
-  if (!full_name || full_name.length > 120 || !/^\\+?[1-9]\\d{6,14}$/.test(phone)) throw new Error("Ingresa un nombre y un teléfono internacional válido (ej. +591XXXXXXXX).");
+  const phone = typeof body.phone === "string" ? body.phone.trim().replace(/[\s()-]/g, "") : "";
+  if (!full_name || full_name.length > 120 || !/^\+?[1-9]\d{6,14}$/.test(phone)) throw new Error("Ingresa un nombre y un teléfono internacional válido (ej. +591XXXXXXXX).");
   const tags = Array.isArray(body.tags) ? body.tags.filter((v): v is string => typeof v === "string").map((v) => v.trim()).filter(Boolean).slice(0, 20) : [];
-  if (typeof body.email === "string" && body.email.trim() && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(body.email.trim())) throw new Error("Ingresa un correo válido.");
+  if (typeof body.email === "string" && body.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email.trim())) throw new Error("Ingresa un correo válido.");
   if (typeof body.notes === "string" && body.notes.length > 2000) throw new Error("Las notas no pueden superar 2000 caracteres.");
   if (typeof body.source === "string" && !["whatsapp", "instagram", "facebook", "marketplace", "referido", "otro"].includes(body.source)) throw new Error("Procedencia no válida.");
   return { full_name, phone, email: typeof body.email === "string" && body.email.trim() ? body.email.trim() : null, city: typeof body.city === "string" && body.city.trim() ? body.city.trim() : null, notes: typeof body.notes === "string" && body.notes.trim() ? body.notes.trim() : null, source: typeof body.source === "string" ? body.source : "whatsapp", tags };
