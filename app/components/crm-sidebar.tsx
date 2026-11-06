@@ -6,9 +6,9 @@ const items = [
   { href: "/dashboard", label: "Resumen general", icon: "▦", section: "GENERAL" },
   { href: "/conversations", label: "Conversaciones", icon: "◉", section: "OPERACIONES" },
   { href: "/customers", label: "Clientes", icon: "♙", section: "OPERACIONES" },
+  { href: "/berta", label: "Berta AI", icon: "✦", section: "CONFIGURACIÓN" },
 ];
 const planned = [
-  { label: "Berta AI", icon: "✦" },
   { label: "Oportunidades", icon: "◇" },
   { label: "Productos Wella", icon: "▤" },
   { label: "Seguimientos", icon: "◷" },
@@ -29,8 +29,8 @@ export default function CrmSidebar({ role }: { role: string }) {
         <div className="sidebar-brand-row"><a className="sidebar-brand" href="/dashboard"><span className="crm-brand-mark">B</span><span><strong>BERTA AI CRM</strong><small>MARZOE · GESTIÓN COMERCIAL</small></span></a><button type="button" className="sidebar-collapse-button" onClick={() => setCollapsed(true)} aria-label="Ocultar menú lateral" title="Ocultar menú">«</button></div>
         <div className="sidebar-workspace"><span className="workspace-dot" /> Espacio MARZOE <span className="workspace-live">Pruebas</span></div>
         <nav className="sidebar-nav" aria-label="Navegación principal">
-          {items.map((item, i) => <div key={item.href}>
-            {(i === 0 || item.section !== items[i-1].section) && <p className="sidebar-section">{item.section}</p>}
+          {items.filter(item => item.href !== "/berta" || role === "admin").map((item, i, visibleItems) => <div key={item.href}>
+            {(i === 0 || item.section !== visibleItems[i-1].section) && <p className="sidebar-section">{item.section}</p>}
             <a href={item.href} className={pathname.startsWith(item.href) ? "sidebar-link active" : "sidebar-link"} aria-current={pathname.startsWith(item.href) ? "page" : undefined}><span className="sidebar-icon">{item.icon}</span>{item.label}</a>
           </div>)}
           <p className="sidebar-section">PRÓXIMAMENTE</p>
