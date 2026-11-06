@@ -34,7 +34,7 @@ const dateTime = (value: string | null) => value
 export default async function ConversationsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ id?: string; estado?: string }>;
+  searchParams: Promise<{ id?: string; estado?: string; buscar?: string }>;
 }) {
   const supabase = await createSupabaseServerClient();
   const [{ data: claims, error: authError }, params] = await Promise.all([
@@ -59,8 +59,18 @@ export default async function ConversationsPage({
   }
 
   const { data: rawConversations, error: conversationsError } = await conversationsQuery;
-  const conversations = (rawConversations ?? []) as unknown as ConversationRow[];
+  const allConversations = (rawConversations ?? []) as unknown as ConversationRow[];
+  const search = (params.buscar ?? "").trim().toLocaleLowerCase("es-BO").slice(0, 80);
+  const conversations = search
+    ? allConversations.filter((item) => [item.customer?.full_name ?? "", item.customer?.phone ?? ""].some((field) => field.toLocaleLowerCase("es-BO").includes(search)))
+    : allConversations;
   const selected = conversations.find((item) => item.id === params.id) ?? conversations[0] ?? null;
+  const filterHref = (estado?: string) => {
+    const query = new URLSearchParams();
+    if (estado) query.set("estado", estado);
+    if (params.buscar) query.set("buscar", params.buscar.slice(0, 80));
+    return "/conversations" + (query.toString() ? "?" + query.toString() : "");
+  };
 
   let messages: MessageRow[] = [];
   let messagesError: string | null = null;
@@ -110,15 +120,21 @@ export default async function ConversationsPage({
         <section className="inbox-layout">
           <aside className="conversation-panel">
             <div className="panel-title"><h2>Bandeja</h2><span>{conversations.length}</span></div>
+            <form className="inbox-search" action="/conversations" method="get" role="search">
+              {params.estado && <input type="hidden" name="estado" value={params.estado} />}
+              <label htmlFor="inbox-search-input">Buscar cliente o teléfono</label>
+              <div className="inbox-search-row"><input id="inbox-search-input" name="buscar" type="search" maxLength={80} defaultValue={params.buscar ?? ""} placeholder="Nombre o número..." /><button type="submit">Buscar</button></div>
+              <div className="inbox-search-actions">{search && <a href={filterHref(params.estado)}>Limpiar búsqueda</a>}<a href={filterHref(params.estado)}>Actualizar bandeja ↻</a></div>
+            </form>
             <nav className="conversation-filters" aria-label="Filtrar conversaciones">
-              <a className={!params.estado ? "active" : ""} href="/conversations">Todas</a>
-              <a className={params.estado === "open" ? "active" : ""} href="/conversations?estado=open">Abiertas</a>
-              <a className={params.estado === "pending" ? "active" : ""} href="/conversations?estado=pending">Pendientes</a>
-              <a className={params.estado === "closed" ? "active" : ""} href="/conversations?estado=closed">Cerradas</a>
+              <a className={!params.estado ? "active" : ""} href={filterHref()}>Todas</a>
+              <a className={params.estado === "open" ? "active" : ""} href={filterHref("open")}>Abiertas</a>
+              <a className={params.estado === "pending" ? "active" : ""} href={filterHref("pending")}>Pendientes</a>
+              <a className={params.estado === "closed" ? "active" : ""} href={filterHref("closed")}>Cerradas</a>
             </nav>
             <div className="conversation-list">
               {conversations.map((conversation) => (
-                <a key={conversation.id} href={`/conversations?id=${conversation.id}${params.estado ? `&estado=${params.estado}` : ""}`} className={selected?.id === conversation.id ? "conversation-item selected" : "conversation-item"}>
+                <a key={conversation.id} href={`/conversations?id=${conversation.id}${params.estado ? `&estado=${params.estado}` : ""}${params.buscar ? `&buscar=${encodeURIComponent(params.buscar.slice(0, 80))}` : ""}`} className={selected?.id === conversation.id ? "conversation-item selected" : "conversation-item"}>
                   <span className="customer-avatar">{customerName(conversation.customer).slice(0, 1).toUpperCase()}</span>
                   <span className="conversation-copy">
                     <span className="conversation-name">{customerName(conversation.customer)}</span>
@@ -128,7 +144,7 @@ export default async function ConversationsPage({
                   <span className="conversation-side">{conversation.ai_enabled && <span className="ai-chip">IA</span>}{conversation.unread_count > 0 && <span className="unread-count">{conversation.unread_count}</span>}</span>
                 </a>
               ))}
-              {conversations.length === 0 && <div className="empty-list"><span>—</span><strong>No hay conversaciones</strong><p>Cuando un cliente escriba al WhatsApp de MARZOE, aparecerá aquí.</p></div>}
+              {conversations.length === 0 && <div className="empty-list"><span>—</span><strong>{search ? "No se encontraron resultados" : "No hay conversaciones"}</strong><p>{search ? "Prueba con otro nombre o teléfono, o limpia la búsqueda." : "Cuando un cliente escriba al WhatsApp de MARZOE, aparecerá aquí."}</p></div>}
             </div>
           </aside>
 
