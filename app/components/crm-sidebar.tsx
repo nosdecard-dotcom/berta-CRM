@@ -19,12 +19,14 @@ const planned = [
 export default function CrmSidebar({ role }: { role: string }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   return (
     <>
-      <button type="button" className="sidebar-toggle" onClick={() => setOpen(!open)} aria-expanded={open} aria-controls="crm-sidebar">☰ Menú</button>
+      <button type="button" className="sidebar-toggle" onClick={() => setOpen(!open)} aria-expanded={open} aria-controls="crm-sidebar" aria-label={open ? "Cerrar menú" : "Abrir menú"}>{open ? "✕ Cerrar" : "☰ Menú"}</button>
+      {collapsed && <button type="button" className="sidebar-reopen" onClick={() => setCollapsed(false)} aria-label="Mostrar menú lateral">☰ Menú</button>}
       {open && <button className="sidebar-backdrop" aria-label="Cerrar menú" onClick={() => setOpen(false)} />}
-      <aside id="crm-sidebar" className={`crm-sidebar ${open ? "is-open" : ""}`}>
-        <a className="sidebar-brand" href="/dashboard"><span className="crm-brand-mark">B</span><span><strong>BERTA AI CRM</strong><small>MARZOE · GESTIÓN COMERCIAL</small></span></a>
+      <aside id="crm-sidebar" className={`crm-sidebar ${open ? "is-open" : ""} ${collapsed ? "is-collapsed" : ""}`}>
+        <div className="sidebar-brand-row"><a className="sidebar-brand" href="/dashboard"><span className="crm-brand-mark">B</span><span><strong>BERTA AI CRM</strong><small>MARZOE · GESTIÓN COMERCIAL</small></span></a><button type="button" className="sidebar-collapse-button" onClick={() => setCollapsed(true)} aria-label="Ocultar menú lateral" title="Ocultar menú">«</button></div>
         <div className="sidebar-workspace"><span className="workspace-dot" /> Espacio MARZOE <span className="workspace-live">Pruebas</span></div>
         <nav className="sidebar-nav" aria-label="Navegación principal">
           {items.map((item, i) => <div key={item.href}>
