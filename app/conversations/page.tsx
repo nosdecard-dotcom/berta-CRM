@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/ssr-server";
 import ReplyComposer from "./reply-composer";
+import CrmSidebar from "@/app/components/crm-sidebar";
 import ConversationControls from "./conversation-controls";
 
 export const dynamic = "force-dynamic";
@@ -85,7 +86,7 @@ export default async function ConversationsPage({
     customer?.full_name?.trim() || customer?.phone || "Cliente sin nombre";
 
   return (
-    <main className="crm-shell">
+    <div className="workspace-layout"><CrmSidebar role={role}/><div className="workspace-main"><main className="crm-shell">
       <header className="crm-header">
         <a className="crm-brand" href="/conversations">
           <span className="crm-brand-mark">B</span>
@@ -165,6 +166,6 @@ export default async function ConversationsPage({
           </section>
         </section>
       )}
-    </main>
+    </main></div></div>
   );
 }
