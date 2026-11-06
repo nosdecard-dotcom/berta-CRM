@@ -11,7 +11,7 @@ export default async function Home() {
 
   const metadata = (claims.claims.app_metadata ?? {}) as { role?: string };
   if (["admin", "manager", "agent"].includes(metadata.role ?? "")) {
-    redirect("/conversations");
+    redirect("/dashboard");
   }
 
   return (
