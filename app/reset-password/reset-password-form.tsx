@@ -21,7 +21,7 @@ export default function ResetPasswordForm() {
     const query = new URLSearchParams(window.location.search);
     const hasRecoveryToken = fragment.get("type") === "recovery" && !!fragment.get("access_token");
     const hasCode = query.has("code") || query.has("token_hash");
-    const { data: listener } = supabase.auth.onAuthStateChange((event) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event: string) => {
       if (active && event === "PASSWORD_RECOVERY") {
         setValid(true);
         setReady(true);
