@@ -68,6 +68,8 @@ export default function LoginForm() {
       )}
       {error && <p className="form-error" role="alert">{error}</p>}
 
+      <a href="/reset-password">¿Olvidaste tu contraseña?</a>
+
       <button type="submit" disabled={loading}>
         {loading ? "Ingresando…" : "Iniciar sesión"}
       </button>
