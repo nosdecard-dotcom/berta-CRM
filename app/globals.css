@@ -272,3 +272,30 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
 .workspace-main .conversation-panel,.workspace-main .thread-panel{min-width:0}
 .workspace-main .conversation-filters{overflow-x:auto;max-width:100%}
 @media(max-width:760px){.inbox-search{padding:11px}.inbox-search-row button{padding:0 9px}}
+
+
+/* Berta AI administration */
+.berta-page{width:100%;max-width:1450px;margin:0 auto;padding:24px 28px 50px;min-width:0}
+.berta-page>.eyebrow{margin:0 0 9px}
+.berta-page h1{font-size:clamp(24px,2.4vw,32px)}
+.berta-lead{font-size:13px;color:var(--muted);line-height:1.65;margin:10px 0 24px}
+.berta-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:17px}
+.berta-panel{background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px;min-width:0}
+.berta-panel-title{display:flex;gap:12px;align-items:center;border-bottom:1px solid #edf0ed;padding-bottom:18px;margin-bottom:12px}
+.berta-panel h2{font:21px Georgia,serif;margin:0}
+.berta-panel-title p{color:var(--muted);font-size:11px;margin:6px 0 0}
+.berta-symbol{background:#eaf2eb;color:var(--green);border-radius:10px;display:grid;place-items:center;width:39px;height:39px;font-size:20px;flex:none}
+.berta-facts{margin:0}.berta-facts>div{display:flex;justify-content:space-between;gap:16px;border-bottom:1px solid #f0f2ef;padding:12px 0;font-size:12px}
+.berta-facts dt{color:var(--muted)}.berta-facts dd{text-align:right;margin:0;font-weight:600;overflow-wrap:anywhere}
+.berta-facts a{color:var(--green)}
+.berta-note{margin-top:18px;background:#f2f6f0;border-radius:10px;padding:15px;font-size:12px;line-height:1.65}
+.berta-note p{margin:5px 0 0;color:#5f7162}
+.berta-check{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:13px 0;border-bottom:1px solid #edf0ed}
+.berta-check strong{font-size:12px}.berta-check p{font-size:11px;color:var(--muted);line-height:1.5;margin:5px 0 0}
+.berta-ok,.berta-missing{flex:none;font-size:10px;padding:6px 9px;border-radius:30px}
+.berta-ok{background:#e8f2e9;color:#326441}.berta-missing{background:#fff0e7;color:#9b4e28}
+.berta-caution{font-size:11px;line-height:1.6;color:#7b837c;background:#f7f8f5;padding:12px;border-radius:9px}
+.berta-next{margin-top:18px}.berta-next ol{font-size:12px;color:#536259;line-height:2;padding-left:22px;margin:14px 0}
+.berta-next>p{font-size:11px;color:var(--muted);margin-bottom:20px}
+@media(max-width:1050px){.berta-grid{grid-template-columns:1fr}}
+@media(max-width:760px){.berta-page{padding:22px 14px 35px}.berta-panel{padding:16px}.berta-facts>div{flex-direction:column;gap:4px}.berta-facts dd{text-align:left}.berta-check{align-items:flex-start;flex-direction:column;gap:7px}}
