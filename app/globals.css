@@ -259,3 +259,16 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
 @media(max-width:1350px){.workspace-layout .dashboard-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.workspace-layout .dashboard-columns{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:1100px) and (min-width:761px){.workspace-layout{grid-template-columns:210px minmax(0,1fr)!important}.crm-sidebar{width:210px!important;max-width:210px}.workspace-layout:has(.crm-sidebar.is-collapsed){grid-template-columns:0 minmax(0,1fr)!important}}
 @media(max-width:760px){.workspace-layout,.workspace-layout:has(.crm-sidebar.is-collapsed){display:block!important;grid-template-columns:none!important}.crm-sidebar,.crm-sidebar.is-collapsed{position:fixed!important;width:255px!important;max-width:255px!important;overflow:visible!important;transform:translateX(-105%)}.crm-sidebar.is-open,.crm-sidebar.is-open.is-collapsed{transform:translateX(0)}.workspace-layout .dashboard-content{padding:18px 14px 35px}.workspace-layout .dashboard-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.workspace-layout .dashboard-columns{grid-template-columns:1fr}}
+
+
+/* Conversations: search and compact controls */
+.inbox-search{padding:12px 15px 9px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.inbox-search>label{font-size:10px;color:var(--muted);font-weight:700}
+.inbox-search-row{display:flex;gap:6px;min-width:0}
+.inbox-search-row input{flex:1;min-width:0;width:0;height:36px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:11px;outline-color:var(--green)}
+.inbox-search-row button{border:0;background:var(--green);color:#fff;border-radius:8px;padding:0 11px;font-size:11px;cursor:pointer}
+.inbox-search-actions{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px}
+.inbox-search-actions a{font-size:10px;color:var(--green);text-decoration:none}
+.workspace-main .conversation-panel,.workspace-main .thread-panel{min-width:0}
+.workspace-main .conversation-filters{overflow-x:auto;max-width:100%}
+@media(max-width:760px){.inbox-search{padding:11px}.inbox-search-row button{padding:0 9px}}
