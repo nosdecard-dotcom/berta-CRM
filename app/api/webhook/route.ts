@@ -83,6 +83,7 @@ async function processWebhookValue(
   supabase: ReturnType<typeof createServerSupabaseClient>,
   value: any
 ) {
+  console.info("[wa-webhook] processing-value", { messageCount: Array.isArray(value.messages) ? value.messages.length : 0, statusCount: Array.isArray(value.statuses) ? value.statuses.length : 0, hasPhoneNumberId: Boolean(value.metadata?.phone_number_id) });
   // Primero actualizamos los estados de mensajes salientes.
   for (const status of value.statuses ?? []) {
     if (status.id && status.status) {
@@ -99,12 +100,14 @@ async function processWebhookValue(
     );
     const profileName = contact?.profile?.name ?? null;
 
+    console.info("[wa-webhook] inbound-start", { type: message.type ?? "unknown" });
     const customer = await getOrCreateCustomer(supabase, {
       phone,
       name: profileName,
       source: message.referral?.source_type === "ad" ? "whatsapp_ads" : "whatsapp",
     });
 
+    console.info("[wa-webhook] customer-ready");
     const conversation = await getOrCreateConversation(
       supabase,
       customer.id,
@@ -112,6 +115,7 @@ async function processWebhookValue(
       value.metadata?.phone_number_id ?? null
     );
 
+    console.info("[wa-webhook] conversation-ready");
     const normalized = normalizeMessage(message);
     const saved = await saveMessage(supabase, {
       conversationId: conversation.id,
@@ -123,6 +127,7 @@ async function processWebhookValue(
       rawPayload: message,
     });
 
+    console.info("[wa-webhook] message-save-result", { inserted: saved.inserted });
     // La restricción única evita reprocesar reintentos de Meta.
     if (!saved.inserted) continue;
 
@@ -138,7 +143,8 @@ async function processWebhookValue(
       .eq("id", customer.id);
     if (customerUpdateError) throw customerUpdateError;
 
-    if (!isBotEnabledForConversation(conversation)) continue;
+    if (!isBotEnabledForConversation(conversation)) { console.info("[wa-webhook] bot-disabled"); continue; }
+    console.info("[wa-webhook] generating-reply");
 
     if (shouldEscalateToHuman(normalized.body ?? "")) {
       const { error } = await supabase
@@ -183,7 +189,9 @@ async function processWebhookValue(
       userMessage: normalized.body ?? "El cliente envió un mensaje sin texto.",
     });
 
+    console.info("[wa-webhook] reply-generated");
     const sent = await sendWhatsAppMessage(phone, reply);
+    console.info("[wa-webhook] reply-sent");
     await saveMessage(supabase, {
       conversationId: conversation.id,
       direction: "outbound",
@@ -219,7 +227,10 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const rawBody = await req.text();
 
-  if (!isValidMetaSignature(rawBody, req.headers.get("x-hub-signature-256"))) {
+  const signature = req.headers.get("x-hub-signature-256");
+  const validSignature = isValidMetaSignature(rawBody, signature);
+  console.info("[wa-webhook] post-received", { hasSignature: Boolean(signature), hasAppSecret: Boolean(process.env.WHATSAPP_APP_SECRET), validSignature, bytes: rawBody.length });
+  if (!validSignature) {
     return NextResponse.json({ error: "Firma de webhook inválida." }, { status: 401 });
   }
 
@@ -227,22 +238,27 @@ export async function POST(req: NextRequest) {
   try {
     body = JSON.parse(rawBody);
   } catch {
+    console.warn("[wa-webhook] invalid-json");
     return NextResponse.json({ error: "JSON inválido." }, { status: 400 });
   }
 
   try {
+    console.info("[wa-webhook] payload-structure", { entryCount: Array.isArray(body.entry) ? body.entry.length : 0, objectType: typeof body.object });
     const supabase = createServerSupabaseClient();
+    console.info("[wa-webhook] supabase-client-ready");
 
     for (const entry of body.entry ?? []) {
       for (const change of entry.changes ?? []) {
         if (change.field !== "messages" || !change.value) continue;
+        console.info("[wa-webhook] messages-change-received");
         await processWebhookValue(supabase, change.value);
       }
     }
 
+    console.info("[wa-webhook] completed");
     return NextResponse.json({ ok: true });
   } catch (error) {
-    console.error("Error procesando webhook de WhatsApp:", error);
+    console.error("[wa-webhook] processing-failed", { errorType: error instanceof Error ? error.name : "unknown", errorCode: typeof error === "object" && error !== null && "code" in error ? String(error.code) : "none" });
     // Un error transitorio debe provocar reintento de Meta; los mensajes
     // entrantes ya insertados se protegen con whatsapp_message_id único.
     return NextResponse.json({ ok: false }, { status: 500 });
