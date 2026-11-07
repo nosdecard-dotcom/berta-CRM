@@ -229,7 +229,27 @@ export async function POST(req: NextRequest) {
 
   const signature = req.headers.get("x-hub-signature-256");
   const validSignature = isValidMetaSignature(rawBody, signature);
-  console.info("[wa-webhook] post-received", { hasSignature: Boolean(signature), hasAppSecret: Boolean(process.env.WHATSAPP_APP_SECRET), validSignature, bytes: rawBody.length });
+  // Diagnóstico sin revelar la clave, la firma ni el contenido del mensaje.
+  // Las variantes SOLO se comprueban; nunca autorizan el procesamiento.
+  const configuredSecret = process.env.WHATSAPP_APP_SECRET ?? "";
+  const normalizedSecret = configuredSecret.trim();
+  const unquotedSecret = normalizedSecret.replace(/^["']|["']$/g, "");
+  const signatureWithSecret = (candidate: string) => {
+    if (!candidate || !signature || !/^sha256=[a-f0-9]{64}$/i.test(signature)) return false;
+    const calculated = createHmac("sha256", candidate).update(rawBody).digest("hex");
+    return timingSafeEqual(Buffer.from(calculated, "hex"), Buffer.from(signature.slice(7), "hex"));
+  };
+  console.info("[wa-webhook] post-received", {
+    hasSignature: Boolean(signature),
+    signatureFormatValid: Boolean(signature && /^sha256=[a-f0-9]{64}$/i.test(signature)),
+    hasAppSecret: Boolean(configuredSecret),
+    secretHasOuterWhitespace: configuredSecret !== normalizedSecret,
+    secretHasOuterQuotes: normalizedSecret !== unquotedSecret,
+    normalizedSecretWouldMatch: !validSignature && normalizedSecret !== configuredSecret && signatureWithSecret(normalizedSecret),
+    unquotedSecretWouldMatch: !validSignature && unquotedSecret !== configuredSecret && signatureWithSecret(unquotedSecret),
+    validSignature,
+    bytes: Buffer.byteLength(rawBody, "utf8"),
+  });
   if (!validSignature) {
     return NextResponse.json({ error: "Firma de webhook inválida." }, { status: 401 });
   }
