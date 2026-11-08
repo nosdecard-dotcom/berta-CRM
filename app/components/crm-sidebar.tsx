@@ -7,10 +7,10 @@ const items = [
   { href: "/conversations", label: "Conversaciones", icon: "◉", section: "OPERACIONES" },
   { href: "/customers", label: "Clientes", icon: "♙", section: "OPERACIONES" },
   { href: "/catalog", label: "Productos Wella", icon: "▤", section: "OPERACIONES" },
+  { href: "/orders", label: "Pedidos", icon: "◇", section: "OPERACIONES" },
   { href: "/berta", label: "Berta AI", icon: "✦", section: "CONFIGURACIÓN" },
 ];
 const planned = [
-  { label: "Oportunidades", icon: "◇" },
   { label: "Seguimientos", icon: "◷" },
   { label: "Reportes", icon: "▥" },
   { label: "Equipo y ajustes", icon: "⚙" },
