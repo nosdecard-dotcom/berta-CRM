@@ -9,6 +9,7 @@ import {
 import { saveMessage, updateMessageStatus } from "@/lib/messages";
 import { generateBertaReply, shouldEscalateToHuman } from "@/lib/agent";
 import { sendWhatsAppMessage } from "@/lib/whatsapp";
+import { captureOrderRequest } from "@/lib/order-capture";
 
 export const runtime = "nodejs";
 
@@ -142,6 +143,20 @@ async function processWebhookValue(
       .update({ last_contact_at: new Date().toISOString() })
       .eq("id", customer.id);
     if (customerUpdateError) throw customerUpdateError;
+
+    // Capture a draft before generating Berta's response; no customer confirmation is sent here.
+    if (saved.id && normalized.messageType === "text" && normalized.body) {
+      try {
+        const capture = await captureOrderRequest(supabase, {
+          conversationId: conversation.id, customerId: customer.id,
+          messageId: saved.id, body: normalized.body,
+        });
+        console.info("[orders] capture", { created: capture.created, reason: "reason" in capture ? capture.reason : undefined });
+      } catch (captureError) {
+        console.error("[orders] capture-failed", { code: typeof captureError === "object" && captureError !== null && "code" in captureError ? String(captureError.code) : "unknown" });
+        // A failure to capture must not block the WhatsApp conversation.
+      }
+    }
 
     if (!isBotEnabledForConversation(conversation)) { console.info("[wa-webhook] bot-disabled"); continue; }
     console.info("[wa-webhook] generating-reply");
