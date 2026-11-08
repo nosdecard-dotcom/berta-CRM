@@ -38,7 +38,7 @@ export async function getOrCreateCustomer(
     .from("customers")
     .insert({
       phone: input.phone,
-      full_name: input.name,
+      full_name: input.name?.trim() || input.phone,
       source: input.source ?? "whatsapp",
       last_contact_at: new Date().toISOString(),
     })
