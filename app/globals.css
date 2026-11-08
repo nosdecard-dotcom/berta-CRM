@@ -299,3 +299,19 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
 .berta-next>p{font-size:11px;color:var(--muted);margin-bottom:20px}
 @media(max-width:1050px){.berta-grid{grid-template-columns:1fr}}
 @media(max-width:760px){.berta-page{padding:22px 14px 35px}.berta-panel{padding:16px}.berta-facts>div{flex-direction:column;gap:4px}.berta-facts dd{text-align:left}.berta-check{align-items:flex-start;flex-direction:column;gap:7px}}
+
+
+/* Conversation viewport: allow the message list to scroll independently of the sidebar and composer. */
+.inbox-layout { min-height: 0; height: min(850px, max(620px, calc(100dvh - 220px))); }
+.conversation-panel, .thread-panel { min-height: 0; overflow: hidden; }
+.conversation-list { flex: 1 1 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.message-timeline { flex: 1 1 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+.thread-header, .thread-notice, .conversation-controls, .reply-composer-wrap { flex-shrink: 0; }
+@media (max-width: 620px) {
+ .inbox-layout { height: auto; min-height: 0; max-height: none; overflow: visible; }
+ .conversation-panel { max-height: 330px; overflow: hidden; }
+ .thread-panel { height: min(78dvh, 740px); min-height: 430px; overflow: hidden; }
+ .message-timeline { min-height: 0; overflow-y: auto; }
+ .thread-header { padding: 12px 14px; }
+ .thread-notice { padding: 8px 14px; }
+}
