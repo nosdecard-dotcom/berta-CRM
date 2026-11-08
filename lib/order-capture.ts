@@ -13,7 +13,7 @@ export async function captureOrderRequest(db:SupabaseClient, args:{
  const tokens=(s:string)=>normalized(s).split(" ").filter(Boolean);
  const aliases:Record<string,string>={shp:"shampoo",champu:"shampoo",champú:"shampoo",cnd:"acondicionador",conditioner:"acondicionador",mascarilla:"mask",mascara:"mask",litro:"1000ml",litros:"1000ml"};
  const canonical=(s:string)=>tokens(s).map(t=>aliases[t]||t);
- const incoming=canonical(text);
+ const incoming=canonical(text).join(" ").replace(/\\b(\\d+)\\s+(ml|g|gr)\\b/g,"$1$2").split(" ");
  const hasToken=(token:string)=>incoming.includes(token);
  const exactSku=(sku:string)=>sku.length>=4&&new RegExp("(^|[^0-9a-z])"+sku+"(?=$|[^0-9a-z])","i").test(text);
  const scored=(products||[]).map(p=>{
