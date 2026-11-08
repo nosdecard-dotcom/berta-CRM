@@ -6,11 +6,11 @@ const items = [
   { href: "/dashboard", label: "Resumen general", icon: "▦", section: "GENERAL" },
   { href: "/conversations", label: "Conversaciones", icon: "◉", section: "OPERACIONES" },
   { href: "/customers", label: "Clientes", icon: "♙", section: "OPERACIONES" },
+  { href: "/catalog", label: "Productos Wella", icon: "▤", section: "OPERACIONES" },
   { href: "/berta", label: "Berta AI", icon: "✦", section: "CONFIGURACIÓN" },
 ];
 const planned = [
   { label: "Oportunidades", icon: "◇" },
-  { label: "Productos Wella", icon: "▤" },
   { label: "Seguimientos", icon: "◷" },
   { label: "Reportes", icon: "▥" },
   { label: "Equipo y ajustes", icon: "⚙" },
