@@ -46,9 +46,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Solo puedes modificar conversaciones asignadas a tu usuario." }, { status: 403 });
   }
 
+  // Al pasar a atención humana, marcar pendiente. Al reactivar la IA,
+  // devolver a abierta. Una conversación cerrada nunca reactiva la IA sola.
   const changes = action === "toggle_ai"
-    ? { ai_enabled: !conversation.ai_enabled, status: conversation.status === "closed" ? "open" : conversation.status }
-    : { status: conversation.status === "closed" ? "open" : "closed", ai_enabled: conversation.status === "closed" ? conversation.ai_enabled : false };
+    ? { ai_enabled: !conversation.ai_enabled, status: !conversation.ai_enabled ? "open" : "pending" }
+    : { status: conversation.status === "closed" ? "open" : "closed", ai_enabled: false };
 
   const { error: updateError } = await supabase.from("conversations").update(changes).eq("id", conversationId);
   if (updateError) return NextResponse.json({ error: "No se pudo actualizar la conversación." }, { status: 500 });
