@@ -23,12 +23,15 @@ export async function captureOrderRequest(db:SupabaseClient, args:{
  let quantity:number|null=null;
  for(const pattern of qtyPatterns){const match=text.match(pattern);if(match){quantity=Number(match[1]);break;}}
  if(!quantity||quantity<1||quantity>100)return {created:false,reason:"missing-quantity"};
- const {data:order,error:orderError}=await db.from("sales_orders").upsert({
+ const {data:existing,error:existingError}=await db.from("sales_orders").select("id").eq("source_message_id",args.messageId).maybeSingle();
+ if(existingError)throw existingError;
+ if(existing)return {created:false,reason:"already-recorded"};
+ const {data:order,error:orderError}=await db.from("sales_orders").insert({
    conversation_id:args.conversationId,customer_id:args.customerId,
    source_message_id:args.messageId,status:"new",
    notes:"Solicitud detectada automáticamente en WhatsApp. Requiere validación humana de producto, cantidad, precio y entrega."
- },{onConflict:"source_message_id",ignoreDuplicates:true}).select("id").maybeSingle();
- if(orderError)throw orderError;
+ }).select("id").single();
+ if(orderError){if(orderError.code==="23505")return {created:false,reason:"already-recorded"};throw orderError;}
  if(!order)return {created:false,reason:"already-recorded"};
  const {error:itemError}=await db.from("sales_order_items").insert({
    order_id:order.id,product_id:product.id,product_name:product.name,
