@@ -10,6 +10,7 @@ import { saveMessage, updateMessageStatus } from "@/lib/messages";
 import { generateBertaReply, shouldEscalateToHuman } from "@/lib/agent";
 import { sendWhatsAppMessage } from "@/lib/whatsapp";
 import { captureOrderRequest } from "@/lib/order-capture";
+import { updatePendingOrderDelivery, orderAcknowledgement } from "@/lib/order-delivery";
 
 export const runtime = "nodejs";
 
@@ -144,18 +145,26 @@ async function processWebhookValue(
       .eq("id", customer.id);
     if (customerUpdateError) throw customerUpdateError;
 
-    // Capture a draft before generating Berta's response; no customer confirmation is sent here.
+    let newOrder = false;
+    let deliveryDetails: Awaited<ReturnType<typeof updatePendingOrderDelivery>> = null;
     if (saved.id && normalized.messageType === "text" && normalized.body) {
       try {
         const capture = await captureOrderRequest(supabase, {
           conversationId: conversation.id, customerId: customer.id,
           messageId: saved.id, body: normalized.body,
         });
+        newOrder = capture.created;
         console.info("[orders] capture", { created: capture.created, reason: "reason" in capture ? capture.reason : undefined });
       } catch (captureError) {
         console.error("[orders] capture-failed", { code: typeof captureError === "object" && captureError !== null && "code" in captureError ? String(captureError.code) : "unknown" });
         // A failure to capture must not block the WhatsApp conversation.
       }
+    }
+
+    try {
+      deliveryDetails = await updatePendingOrderDelivery(supabase, {conversationId: conversation.id, body: normalized.body ?? "", messageType: normalized.messageType, location: message.location});
+    } catch (deliveryError) {
+      console.error("[orders] delivery-details-failed", {type: deliveryError instanceof Error ? deliveryError.name : "unknown"});
     }
 
     if (!isBotEnabledForConversation(conversation)) { console.info("[wa-webhook] bot-disabled"); continue; }
@@ -199,13 +208,19 @@ async function processWebhookValue(
         content: item.body as string,
       }));
 
-    const reply = await generateBertaReply({
+    const reply = newOrder && deliveryDetails ? orderAcknowledgement(deliveryDetails) : await generateBertaReply({
       history: chatHistory,
       userMessage: normalized.body ?? "El cliente envió un mensaje sin texto.",
     });
 
     console.info("[wa-webhook] reply-generated");
-    const sent = await sendWhatsAppMessage(phone, reply);
+    let sent: Awaited<ReturnType<typeof sendWhatsAppMessage>>;
+    try { sent = await sendWhatsAppMessage(phone, reply); }
+    catch (sendError) {
+      console.error("[wa-webhook] outbound-failed", {reason: sendError instanceof Error ? sendError.message.slice(0,160) : "unknown"});
+      await saveMessage(supabase, {conversationId: conversation.id, direction: "outbound", body: reply, deliveryStatus: "failed", aiGenerated: true});
+      continue;
+    }
     console.info("[wa-webhook] reply-sent");
     await saveMessage(supabase, {
       conversationId: conversation.id,
