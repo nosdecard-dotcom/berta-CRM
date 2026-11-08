@@ -278,7 +278,7 @@ export async function POST(req: NextRequest) {
     console.info("[wa-webhook] completed");
     return NextResponse.json({ ok: true });
   } catch (error) {
-    console.error("[wa-webhook] processing-failed", { errorType: error instanceof Error ? error.name : "unknown", errorCode: typeof error === "object" && error !== null && "code" in error ? String(error.code) : "none" });
+    console.error("[wa-webhook] processing-failed", { errorType: error instanceof Error ? error.name : "unknown", errorCode: typeof error === "object" && error !== null && "code" in error ? String(error.code) : "none", diagnostic: typeof error === "object" && error !== null && "message" in error && typeof error.message === "string" ? error.message.slice(0, 180).replace(/https?:\/\/\S+/g, "[url]").replace(/\+?\d{8,}/g, "[number]") : "unavailable" });
     // Un error transitorio debe provocar reintento de Meta; los mensajes
     // entrantes ya insertados se protegen con whatsapp_message_id único.
     return NextResponse.json({ ok: false }, { status: 500 });
