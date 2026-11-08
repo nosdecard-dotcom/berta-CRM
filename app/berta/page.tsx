@@ -10,7 +10,7 @@ const requirements = [
   { key: "WHATSAPP_ACCESS_TOKEN", label: "Autorización de WhatsApp", detail: "Permite solicitar el envío de mensajes a Meta." },
   { key: "WHATSAPP_VERIFY_TOKEN", label: "Verificación del webhook", detail: "Debe coincidir con el token registrado en Meta Developers." },
   { key: "WHATSAPP_APP_SECRET", label: "Firma de seguridad de Meta", detail: "Protege la recepción de eventos de WhatsApp." },
-  { key: "SUPABASE_SERVICE_ROLE_KEY", label: "Acceso seguro a la base de datos", detail: "Permite guardar mensajes desde el webhook en el servidor." },
+  { key: "SUPABASE_SECRET_KEY", label: "Acceso seguro a la base de datos", detail: "Permite guardar mensajes desde el webhook en el servidor." },
 ];
 
 export default async function BertaPage() {
@@ -20,7 +20,7 @@ export default async function BertaPage() {
   const role = (claims.claims.app_metadata as { role?: string } | undefined)?.role ?? "";
   if (!["admin", "manager", "agent"].includes(role)) redirect("/");
   if (role !== "admin") redirect("/dashboard");
-  const checks = requirements.map(item => ({ ...item, configured: Boolean(process.env[item.key]?.trim()) }));
+  const checks = requirements.map(item => ({ ...item, configured: Boolean((item.key === "SUPABASE_SECRET_KEY" ? (process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY) : process.env[item.key])?.trim()) }));
   const ready = checks.filter(item => item.configured).length;
   return <div className="workspace-layout">
     <CrmSidebar role={role}/>
@@ -49,7 +49,7 @@ export default async function BertaPage() {
             <p className="berta-caution">«Registrada» solo confirma que existe una variable no vacía en el servidor. No comprueba que la credencial sea válida, que Meta haya aceptado el webhook ni que Berta pueda enviar mensajes.</p>
           </section>
         </div>
-        <section className="berta-panel berta-next"><h2>Pruebas pendientes antes de atender clientes</h2><ol><li>Confirmar el webhook y la suscripción al evento <code>messages</code> en Meta Developers.</li><li>Verificar la autorización del número de WhatsApp y los permisos de envío.</li><li>Probar un mensaje entrante desde un número propio autorizado.</li><li>Comprobar que el mensaje aparezca en Conversaciones y que Berta responda.</li><li>Probar la pausa de IA, la derivación a un agente y la recuperación ante errores.</li></ol><p>Estas pruebas no se ejecutan automáticamente desde este panel.</p><a className="dashboard-primary" href="/conversations">Ir a conversaciones ↗</a></section>
+        <section className="berta-panel berta-next"><h2>Validaciones para completar antes de producción</h2><ol><li>Revalidar el webhook y la suscripción al evento <code>messages</code> en Meta Developers.</li><li>Comprobar que el token de WhatsApp tenga vigencia y permisos adecuados para producción.</li><li>Repetir pruebas con números de prueba autorizados.</li><li>Comprobar en el dashboard que el mensaje entrante y la respuesta enviada aparecen correctamente.</li><li>Probar la pausa de IA, la derivación a un agente y la recuperación ante errores.</li></ol><p>Estas pruebas no se ejecutan automáticamente desde este panel.</p><a className="dashboard-primary" href="/conversations">Ir a conversaciones ↗</a></section>
       </main>
     </div>
   </div>;
