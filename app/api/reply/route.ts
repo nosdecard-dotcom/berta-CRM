@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/ssr-server";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { sendWhatsAppMessage } from "@/lib/whatsapp";
 
 export const runtime = "nodejs";
@@ -66,13 +67,22 @@ export async function POST(req: NextRequest) {
   try {
     const result = await sendWhatsAppMessage(customer.phone, text);
     const whatsappId = result.messages?.[0]?.id ?? null;
-    const { error: updateError } = await supabase.from("messages")
-      .update({ whatsapp_message_id: whatsappId, delivery_status: "sent" }).eq("id", saved.id);
-    if (updateError) {
-      console.error("WhatsApp aceptó el mensaje, pero falló la actualización del registro:", updateError);
-      return NextResponse.json({ ok: true, warning: "WhatsApp aceptó el mensaje, pero el CRM no actualizó su registro." });
+    // Las políticas RLS pueden permitir insertar sin permitir actualizar.
+    // Tras validar la sesión, rol y acceso a esta conversación, persistimos
+    // el estado del envío con el cliente exclusivo del servidor.
+    const service = createServerSupabaseClient();
+    const { data: updated, error: updateError } = await service.from("messages")
+      .update({ whatsapp_message_id: whatsappId, delivery_status: "sent" })
+      .eq("id", saved.id).eq("conversation_id", conversationId).select("id").maybeSingle();
+    if (updateError || !updated) {
+      console.error("[manual-reply] message-status-persist-failed", {
+        code: updateError?.code ?? "no-row",
+      });
+      return NextResponse.json({ ok: true, warning: "Meta aceptó el mensaje, pero el CRM no pudo confirmar su estado. No vuelvas a enviarlo sin verificar WhatsApp." });
     }
-    await supabase.from("conversations").update({ last_message_at: new Date().toISOString() }).eq("id", conversationId);
+    const { error: activityError } = await service.from("conversations")
+      .update({ last_message_at: new Date().toISOString() }).eq("id", conversationId);
+    if (activityError) console.error("[manual-reply] activity-update-failed", { code: activityError.code });
     return NextResponse.json({ ok: true, messageId: saved.id });
   } catch (error) {
     console.error("Error al enviar respuesta humana:", error);
