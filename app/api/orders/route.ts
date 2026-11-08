@@ -48,7 +48,7 @@ export async function PATCH(req:NextRequest){
  const auth=await authorize();
  if(!auth)return NextResponse.json({error:"Sin autorización"},{status:403});
  if(!sameOrigin(req))return NextResponse.json({error:"Origen inválido"},{status:403});
- let payload:{orderId?:unknown;status?:unknown};
+ let payload:{orderId?:unknown;status?:unknown;recipientFullName?:unknown;deliveryCity?:unknown;deliveryAddress?:unknown;googleMapsUrl?:unknown};
  try{payload=await req.json();}catch{return NextResponse.json({error:"Datos inválidos"},{status:400});}
  const orderId=typeof payload.orderId==="string"?payload.orderId:"";
  const status=typeof payload.status==="string"?payload.status:"";
@@ -57,7 +57,13 @@ export async function PATCH(req:NextRequest){
  if(!order)return NextResponse.json({error:"Solicitud no encontrada"},{status:404});
  const conversation=order.conversation as unknown as {assigned_to:string|null}|null;
  if(auth.role==="agent"&&conversation?.assigned_to!==auth.userId)return NextResponse.json({error:"Sin acceso"},{status:403});
- const {error}=await auth.db.from("sales_orders").update({status,updated_at:new Date().toISOString()}).eq("id",orderId);
+ const name=typeof payload.recipientFullName==="string"?payload.recipientFullName.trim().slice(0,120):"";
+ const city=typeof payload.deliveryCity==="string"?payload.deliveryCity.trim().slice(0,100):"";
+ const address=typeof payload.deliveryAddress==="string"?payload.deliveryAddress.trim().slice(0,300):"";
+ const maps=typeof payload.googleMapsUrl==="string"?payload.googleMapsUrl.trim().slice(0,1000):"";
+ if(maps&&!/^https:\/\/(?:maps\.app\.goo\.gl|goo\.gl\/maps|(?:www\.)?google\.[a-z.]+\/maps|maps\.google\.[a-z.]+)\//i.test(maps))return NextResponse.json({error:"El enlace de Google Maps no es válido"},{status:400});
+ if(["confirmed","preparing","shipped","delivered"].includes(status)&&(!name||!city||!address||!maps))return NextResponse.json({error:"Completa nombre, ciudad, dirección y enlace de Google Maps antes de confirmar"},{status:422});
+ const {error}=await auth.db.from("sales_orders").update({status,recipient_full_name:name||null,delivery_city:city||null,delivery_address:address||null,google_maps_url:maps||null,updated_at:new Date().toISOString()}).eq("id",orderId);
  if(error)return NextResponse.json({error:"No se pudo actualizar"},{status:500});
  return NextResponse.json({ok:true});
 }
