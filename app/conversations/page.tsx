@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/ssr-server";
 import ReplyComposer from "./reply-composer";
 import MessageTimeline from "./message-timeline";
+import LiveInboxRefresh from "./live-inbox-refresh";
 import CrmSidebar from "@/app/components/crm-sidebar";
 import ConversationControls from "./conversation-controls";
 
@@ -112,7 +113,7 @@ export default async function ConversationsPage({
 
       <section className="crm-heading">
         <div><p className="eyebrow">CENTRO DE ATENCIÓN</p><h1>Conversaciones</h1><p>Gestiona los mensajes de WhatsApp y el seguimiento de tus clientes.</p></div>
-        <div className="crm-summary"><strong>{conversations.length}</strong><span>conversaciones visibles</span></div>
+        <div className="crm-summary"><strong>{conversations.length}</strong><span>conversaciones visibles</span><LiveInboxRefresh /></div>
       </section>
 
       {conversationsError ? (
