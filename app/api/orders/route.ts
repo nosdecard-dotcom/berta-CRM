@@ -69,7 +69,10 @@ export async function PATCH(req:NextRequest){
  if(!["","transfer_qr","cash_on_delivery"].includes(paymentMethod))return NextResponse.json({error:"Modalidad de pago inválida"},{status:400});
  if(status==="confirmed"&&!paymentMethod)return NextResponse.json({error:"Selecciona y autoriza la modalidad de pago antes de confirmar"},{status:422});
  if(status==="confirmed"&&(order.status==="cancelled"||order.status==="delivered"))return NextResponse.json({error:"No se puede confirmar un pedido finalizado"},{status:409});
+ if(status==="confirmed"&&order.confirmation_sent_at)return NextResponse.json({error:"Este pedido ya tiene una confirmación enviada. No se enviará una segunda notificación."},{status:409});
  if(status==="confirmed"&&order.status==="confirmed")return NextResponse.json({error:"El pedido ya fue confirmado. No se reenviará la notificación automáticamente; revisá el historial de WhatsApp antes de intentar otro envío."},{status:409});
+ const itemsToValidate=(order.items||[]) as {product_name:string;quantity:number;retail_unit_price_bob:number|null}[];
+ if(status==="confirmed"&&(!itemsToValidate.length||itemsToValidate.some(item=>!item.product_name||!Number.isInteger(item.quantity)||item.quantity<1||item.retail_unit_price_bob===null||!Number.isFinite(Number(item.retail_unit_price_bob))||Number(item.retail_unit_price_bob)<=0)))return NextResponse.json({error:"No se puede confirmar: el pedido tiene productos, cantidades o precios incompletos. Revisá el catálogo antes de continuar."},{status:422});
  const {data:updated,error}=await auth.db.from("sales_orders").update({status,payment_method:paymentMethod||null,recipient_full_name:name||null,delivery_city:city||null,delivery_address:address||null,google_maps_url:maps||null,updated_at:new Date().toISOString()}).eq("id",orderId).eq("status",order.status).select("id").maybeSingle();
  if(error)return NextResponse.json({error:"No se pudo actualizar"},{status:500});
  if(!updated)return NextResponse.json({error:"El pedido cambió mientras lo editabas. Actualizá la página antes de guardar de nuevo."},{status:409});
@@ -81,15 +84,16 @@ export async function PATCH(req:NextRequest){
    const method=paymentMethod==="transfer_qr"?"transferencia o QR":"pago contra entrega";
    const message="¡Hola! 😊 Te confirmamos que tu pedido de MARZOE fue revisado y aprobado por nuestro equipo.\nProductos: "+summary+"\nTotal de productos: Bs "+total.toFixed(2)+" (el costo de envío se coordina por separado).\nEntrega: "+city+", "+address+".\nModalidad de pago acordada: "+method+".\nNuestro equipo coordinará contigo el pago y el plazo de entrega. ¡Gracias por confiar en MARZOE!";
    if(!customer?.phone)return NextResponse.json({ok:true,warning:"Pedido confirmado, pero falta el teléfono para notificar."});
-   try{
-     const sent=await sendWhatsAppMessage(customer.phone,message);
-     await saveMessage(auth.db,{conversationId:order.conversation_id,direction:"outbound",body:message,whatsappMessageId:sent.messages?.[0]?.id??null,deliveryStatus:"sent",aiGenerated:false});
-     await auth.db.from("sales_orders").update({confirmation_sent_at:new Date().toISOString(),confirmation_send_error:null}).eq("id",orderId).is("confirmation_sent_at",null);
-   }catch(err){
+   let sent:Awaited<ReturnType<typeof sendWhatsAppMessage>>;
+   try{sent=await sendWhatsAppMessage(customer.phone,message);}catch(err){
      const reason=err instanceof Error?err.message.slice(0,180):"Error de envío";
      await auth.db.from("sales_orders").update({confirmation_send_error:reason}).eq("id",orderId);
      return NextResponse.json({ok:true,warning:"Pedido confirmado, pero el envío de WhatsApp falló. Revisá el historial y el error antes de solicitar un reenvío manual; no se enviará otra confirmación automáticamente."});
    }
+   const {error:markError}=await auth.db.from("sales_orders").update({confirmation_sent_at:new Date().toISOString(),confirmation_send_error:null}).eq("id",orderId).is("confirmation_sent_at",null);
+   if(markError)return NextResponse.json({ok:true,warning:"WhatsApp aceptó el envío, pero falló el registro de confirmación. No vuelvas a confirmar: verificá el historial antes de intervenir."});
+   try{await saveMessage(auth.db,{conversationId:order.conversation_id,direction:"outbound",body:message,whatsappMessageId:sent.messages?.[0]?.id??null,deliveryStatus:"sent",aiGenerated:false});}
+   catch{return NextResponse.json({ok:true,warning:"WhatsApp aceptó el envío y se registró la confirmación, pero falló el historial de conversación. No reenvíes el mensaje."});}
  }
  return NextResponse.json({ok:true});
 }
