@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/ssr-server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { sendWhatsAppMessage } from "@/lib/whatsapp";
 import { saveMessage } from "@/lib/messages";
+import { validOrderQuantity,validPublicProduct,validOrderItems,blocksOrderTransition } from "@/lib/order-validation";
 
 export const runtime = "nodejs";
 const allowedStatuses = ["new","verifying","confirmed","preparing","shipped","delivered","cancelled"];
@@ -35,12 +36,12 @@ export async function POST(req:NextRequest) {
  const productId=typeof payload.productId==="string"?payload.productId:"";
  const quantity=Number(payload.quantity);
  const notes=typeof payload.notes==="string"?payload.notes.trim().slice(0,1000):"";
- if(!/^[0-9a-f-]{36}$/i.test(conversationId)||!/^[0-9a-f-]{36}$/i.test(productId)||!Number.isInteger(quantity)||quantity<1||quantity>100)return NextResponse.json({error:"Producto, conversación o cantidad inválidos"},{status:400});
+ if(!/^[0-9a-f-]{36}$/i.test(conversationId)||!/^[0-9a-f-]{36}$/i.test(productId)||!validOrderQuantity(payload.quantity))return NextResponse.json({error:"Producto, conversación o cantidad inválidos"},{status:400});
  const {data:conversation}=await auth.db.from("conversations").select("id,customer_id,assigned_to,status").eq("id",conversationId).maybeSingle();
  if(!conversation||conversation.status==="closed"||(auth.role==="agent"&&conversation.assigned_to!==auth.userId))return NextResponse.json({error:"Conversación sin acceso"},{status:403});
  const {data:product}=await auth.db.from("catalog_products").select("id,name,price_bob,is_active").eq("id",productId).maybeSingle();
  if(!product)return NextResponse.json({error:"Producto no encontrado"},{status:404});
- if(!product.is_active||product.price_bob===null||!Number.isFinite(Number(product.price_bob))||Number(product.price_bob)<=0)return NextResponse.json({error:"El producto está inactivo o no tiene precio público válido. No se puede crear el pedido."},{status:422});
+ if(!validPublicProduct(product))return NextResponse.json({error:"El producto está inactivo o no tiene precio público válido. No se puede crear el pedido."},{status:422});
  const {data:order,error}=await auth.db.from("sales_orders").insert({conversation_id:conversationId,customer_id:conversation.customer_id,created_by:auth.userId,notes,status:"new"}).select("id").single();
  if(error||!order)return NextResponse.json({error:"No se pudo crear la solicitud"},{status:500});
  const {error:itemError}=await auth.db.from("sales_order_items").insert({order_id:order.id,product_id:product.id,product_name:product.name,quantity,retail_unit_price_bob:product.price_bob});
@@ -72,9 +73,9 @@ export async function PATCH(req:NextRequest){
  if(status==="confirmed"&&(order.status==="cancelled"||order.status==="delivered"))return NextResponse.json({error:"No se puede confirmar un pedido finalizado"},{status:409});
  if(status==="confirmed"&&order.confirmation_sent_at)return NextResponse.json({error:"Este pedido ya tiene una confirmación enviada. No se enviará una segunda notificación."},{status:409});
  if(status==="confirmed"&&order.status==="confirmed")return NextResponse.json({error:"El pedido ya fue confirmado. No se reenviará la notificación automáticamente; revisá el historial de WhatsApp antes de intentar otro envío."},{status:409});
- if(order.confirmation_sent_at&&["new","verifying","confirmed"].includes(status)&&status!==order.status)return NextResponse.json({error:"El pedido ya fue notificado y no puede volver a un estado anterior."},{status:409});
+ if(blocksOrderTransition(order.status,status,Boolean(order.confirmation_sent_at))&&status!==order.status&&status!=="confirmed")return NextResponse.json({error:"El pedido ya fue notificado y no puede volver a un estado anterior."},{status:409});
  const itemsToValidate=(order.items||[]) as {product_name:string;quantity:number;retail_unit_price_bob:number|null}[];
- if(status==="confirmed"&&(!itemsToValidate.length||itemsToValidate.some(item=>!item.product_name||!Number.isInteger(item.quantity)||item.quantity<1||item.retail_unit_price_bob===null||!Number.isFinite(Number(item.retail_unit_price_bob))||Number(item.retail_unit_price_bob)<=0)))return NextResponse.json({error:"No se puede confirmar: el pedido tiene productos, cantidades o precios incompletos. Revisá el catálogo antes de continuar."},{status:422});
+ if(status==="confirmed"&&!validOrderItems(itemsToValidate))return NextResponse.json({error:"No se puede confirmar: el pedido tiene productos, cantidades o precios incompletos. Revisá el catálogo antes de continuar."},{status:422});
  const {data:updated,error}=await auth.db.from("sales_orders").update({status,payment_method:paymentMethod||null,recipient_full_name:name||null,delivery_city:city||null,delivery_address:address||null,google_maps_url:maps||null,updated_at:new Date().toISOString()}).eq("id",orderId).eq("status",order.status).select("id").maybeSingle();
  if(error)return NextResponse.json({error:"No se pudo actualizar"},{status:500});
  if(!updated)return NextResponse.json({error:"El pedido cambió mientras lo editabas. Actualizá la página antes de guardar de nuevo."},{status:409});
