@@ -69,8 +69,10 @@ export async function PATCH(req:NextRequest){
  if(!["","transfer_qr","cash_on_delivery"].includes(paymentMethod))return NextResponse.json({error:"Modalidad de pago inválida"},{status:400});
  if(status==="confirmed"&&!paymentMethod)return NextResponse.json({error:"Selecciona y autoriza la modalidad de pago antes de confirmar"},{status:422});
  if(status==="confirmed"&&(order.status==="cancelled"||order.status==="delivered"))return NextResponse.json({error:"No se puede confirmar un pedido finalizado"},{status:409});
- const {error}=await auth.db.from("sales_orders").update({status,payment_method:paymentMethod||null,recipient_full_name:name||null,delivery_city:city||null,delivery_address:address||null,google_maps_url:maps||null,updated_at:new Date().toISOString()}).eq("id",orderId);
+ if(status==="confirmed"&&order.status==="confirmed")return NextResponse.json({error:"El pedido ya fue confirmado. No se reenviará la notificación automáticamente; revisá el historial de WhatsApp antes de intentar otro envío."},{status:409});
+ const {data:updated,error}=await auth.db.from("sales_orders").update({status,payment_method:paymentMethod||null,recipient_full_name:name||null,delivery_city:city||null,delivery_address:address||null,google_maps_url:maps||null,updated_at:new Date().toISOString()}).eq("id",orderId).eq("status",order.status).select("id").maybeSingle();
  if(error)return NextResponse.json({error:"No se pudo actualizar"},{status:500});
+ if(!updated)return NextResponse.json({error:"El pedido cambió mientras lo editabas. Actualizá la página antes de guardar de nuevo."},{status:409});
  if(status==="confirmed"&&!order.confirmation_sent_at){
    const {data:customer}=await auth.db.from("customers").select("phone").eq("id",order.customer_id).single();
    const items=(order.items||[]) as {product_name:string;quantity:number;retail_unit_price_bob:number|null}[];
@@ -86,7 +88,7 @@ export async function PATCH(req:NextRequest){
    }catch(err){
      const reason=err instanceof Error?err.message.slice(0,180):"Error de envío";
      await auth.db.from("sales_orders").update({confirmation_send_error:reason}).eq("id",orderId);
-     return NextResponse.json({ok:true,warning:"Pedido confirmado, pero no se pudo enviar WhatsApp. Reintenta desde Guardar estado."});
+     return NextResponse.json({ok:true,warning:"Pedido confirmado, pero el envío de WhatsApp falló. Revisá el historial y el error antes de solicitar un reenvío manual; no se enviará otra confirmación automáticamente."});
    }
  }
  return NextResponse.json({ok:true});
