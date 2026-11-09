@@ -1,0 +1,17 @@
+name: Order safety checks
+on:
+  push:
+    branches: [feat/marzoe-supabase-integration]
+  pull_request:
+    branches: [main]
+jobs:
+  order-safety:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm test
