@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/ssr-server";
 import ReplyComposer from "./reply-composer";
+import MessageTimeline from "./message-timeline";
 import CrmSidebar from "@/app/components/crm-sidebar";
 import ConversationControls from "./conversation-controls";
 
@@ -79,10 +80,10 @@ export default async function ConversationsPage({
       .from("messages")
       .select("id,direction,body,message_type,created_at,delivery_status,ai_generated")
       .eq("conversation_id", selected.id)
-      .order("created_at", { ascending: true })
+      .order("created_at", { ascending: false })
       .limit(100);
     if (error) messagesError = error.message;
-    else messages = (data ?? []) as MessageRow[];
+    else messages = ((data ?? []) as MessageRow[]).reverse();
   }
 
   const userId = typeof claims.claims.sub === "string" ? claims.claims.sub : "";
@@ -164,7 +165,7 @@ export default async function ConversationsPage({
                 </header>
                 <div className="thread-notice">Canal WhatsApp <span>·</span> Actualizado {dateTime(selected.last_message_at)}</div>
                 <ConversationControls conversationId={selected.id} assignedTo={selected.assigned_to} aiEnabled={selected.ai_enabled} status={selected.status} role={role} staff={staff} />
-                <div className="message-timeline">
+                <MessageTimeline key={selected.id} conversationId={selected.id}>
                   {messagesError ? <div className="crm-alert">No fue posible cargar el historial de mensajes.</div> : messages.length ? messages.map((message) => (
                     <article key={message.id} className={message.direction === "outbound" ? "message-row outbound" : "message-row inbound"}>
                       <div className="message-bubble">
@@ -173,7 +174,7 @@ export default async function ConversationsPage({
                       </div>
                     </article>
                   )) : <div className="empty-thread"><strong>Aún no hay mensajes</strong><p>El historial de esta conversación aparecerá en este espacio.</p></div>}
-                </div>
+                </MessageTimeline>
                 <ReplyComposer conversationId={selected.id} disabled={selected.status === "closed"} />
               </>
             ) : (
