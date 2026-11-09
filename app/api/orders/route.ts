@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/ssr-server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { sendWhatsAppMessage } from "@/lib/whatsapp";
+import { saveMessage } from "@/lib/messages";
 
 export const runtime = "nodejs";
 const allowedStatuses = ["new","verifying","confirmed","preparing","shipped","delivered","cancelled"];
@@ -48,12 +50,12 @@ export async function PATCH(req:NextRequest){
  const auth=await authorize();
  if(!auth)return NextResponse.json({error:"Sin autorización"},{status:403});
  if(!sameOrigin(req))return NextResponse.json({error:"Origen inválido"},{status:403});
- let payload:{orderId?:unknown;status?:unknown;recipientFullName?:unknown;deliveryCity?:unknown;deliveryAddress?:unknown;googleMapsUrl?:unknown};
+ let payload:{orderId?:unknown;status?:unknown;paymentMethod?:unknown;recipientFullName?:unknown;deliveryCity?:unknown;deliveryAddress?:unknown;googleMapsUrl?:unknown};
  try{payload=await req.json();}catch{return NextResponse.json({error:"Datos inválidos"},{status:400});}
  const orderId=typeof payload.orderId==="string"?payload.orderId:"";
  const status=typeof payload.status==="string"?payload.status:"";
  if(!/^[0-9a-f-]{36}$/i.test(orderId)||!allowedStatuses.includes(status))return NextResponse.json({error:"Estado inválido"},{status:400});
- const {data:order}=await auth.db.from("sales_orders").select("id,conversation:conversations!sales_orders_conversation_id_fkey(assigned_to)").eq("id",orderId).maybeSingle();
+ const {data:order}=await auth.db.from("sales_orders").select("id,status,confirmation_sent_at,conversation_id,customer_id,conversation:conversations!sales_orders_conversation_id_fkey(assigned_to),items:sales_order_items(product_name,quantity,retail_unit_price_bob)").eq("id",orderId).maybeSingle();
  if(!order)return NextResponse.json({error:"Solicitud no encontrada"},{status:404});
  const conversation=order.conversation as unknown as {assigned_to:string|null}|null;
  if(auth.role==="agent"&&conversation?.assigned_to!==auth.userId)return NextResponse.json({error:"Sin acceso"},{status:403});
@@ -63,7 +65,29 @@ export async function PATCH(req:NextRequest){
  const maps=typeof payload.googleMapsUrl==="string"?payload.googleMapsUrl.trim().slice(0,1000):"";
  if(maps&&!/^https:\/\/(?:maps\.app\.goo\.gl|goo\.gl\/maps|(?:www\.)?google\.[a-z.]+\/maps|maps\.google\.[a-z.]+)\//i.test(maps))return NextResponse.json({error:"El enlace de Google Maps no es válido"},{status:400});
  if(["confirmed","preparing","shipped","delivered"].includes(status)&&(!name||!city||!address||!maps))return NextResponse.json({error:"Completa nombre, ciudad, dirección y enlace de Google Maps antes de confirmar"},{status:422});
- const {error}=await auth.db.from("sales_orders").update({status,recipient_full_name:name||null,delivery_city:city||null,delivery_address:address||null,google_maps_url:maps||null,updated_at:new Date().toISOString()}).eq("id",orderId);
+ const paymentMethod=typeof payload.paymentMethod==="string"?payload.paymentMethod:"";
+ if(!["","transfer_qr","cash_on_delivery"].includes(paymentMethod))return NextResponse.json({error:"Modalidad de pago inválida"},{status:400});
+ if(status==="confirmed"&&!paymentMethod)return NextResponse.json({error:"Selecciona y autoriza la modalidad de pago antes de confirmar"},{status:422});
+ if(status==="confirmed"&&(order.status==="cancelled"||order.status==="delivered"))return NextResponse.json({error:"No se puede confirmar un pedido finalizado"},{status:409});
+ const {error}=await auth.db.from("sales_orders").update({status,payment_method:paymentMethod||null,recipient_full_name:name||null,delivery_city:city||null,delivery_address:address||null,google_maps_url:maps||null,updated_at:new Date().toISOString()}).eq("id",orderId);
  if(error)return NextResponse.json({error:"No se pudo actualizar"},{status:500});
+ if(status==="confirmed"&&!order.confirmation_sent_at){
+   const {data:customer}=await auth.db.from("customers").select("phone").eq("id",order.customer_id).single();
+   const items=(order.items||[]) as {product_name:string;quantity:number;retail_unit_price_bob:number|null}[];
+   const total=items.reduce((sum,item)=>sum+(item.retail_unit_price_bob??0)*item.quantity,0);
+   const summary=items.map(item=>item.quantity+" × "+item.product_name).join("; ");
+   const method=paymentMethod==="transfer_qr"?"transferencia o QR":"pago contra entrega";
+   const message="¡Hola! 😊 Te confirmamos que tu pedido de MARZOE fue revisado y aprobado por nuestro equipo.\nProductos: "+summary+"\nTotal de productos: Bs "+total.toFixed(2)+" (el costo de envío se coordina por separado).\nEntrega: "+city+", "+address+".\nModalidad de pago acordada: "+method+".\nNuestro equipo coordinará contigo el pago y el plazo de entrega. ¡Gracias por confiar en MARZOE!";
+   if(!customer?.phone)return NextResponse.json({ok:true,warning:"Pedido confirmado, pero falta el teléfono para notificar."});
+   try{
+     const sent=await sendWhatsAppMessage(customer.phone,message);
+     await saveMessage(auth.db,{conversationId:order.conversation_id,direction:"outbound",body:message,whatsappMessageId:sent.messages?.[0]?.id??null,deliveryStatus:"sent",aiGenerated:false});
+     await auth.db.from("sales_orders").update({confirmation_sent_at:new Date().toISOString(),confirmation_send_error:null}).eq("id",orderId).is("confirmation_sent_at",null);
+   }catch(err){
+     const reason=err instanceof Error?err.message.slice(0,180):"Error de envío";
+     await auth.db.from("sales_orders").update({confirmation_send_error:reason}).eq("id",orderId);
+     return NextResponse.json({ok:true,warning:"Pedido confirmado, pero no se pudo enviar WhatsApp. Reintenta desde Guardar estado."});
+   }
+ }
  return NextResponse.json({ok:true});
 }
