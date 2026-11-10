@@ -50,9 +50,10 @@ export default async function ConversationsPage({
   const role = metadata.role ?? "sin asignar";
   if (!["admin", "manager", "agent"].includes(role)) redirect("/");
 
+  const conversationFields = "id,status,ai_enabled,unread_count,last_message_at,updated_at,assigned_to,customer:customers!conversations_customer_id_fkey(full_name,phone)";
   let conversationsQuery = supabase
     .from("conversations")
-    .select("id,status,ai_enabled,unread_count,last_message_at,updated_at,assigned_to,customer:customers!conversations_customer_id_fkey(full_name,phone)")
+    .select(conversationFields)
     .order("last_message_at", { ascending: false, nullsFirst: false })
     .limit(60);
 
@@ -63,10 +64,29 @@ export default async function ConversationsPage({
   const { data: rawConversations, error: conversationsError } = await conversationsQuery;
   const allConversations = (rawConversations ?? []) as unknown as ConversationRow[];
   const search = (params.buscar ?? "").trim().toLocaleLowerCase("es-BO").slice(0, 80);
-  const conversations = search
-    ? allConversations.filter((item) => [item.customer?.full_name ?? "", item.customer?.phone ?? ""].some((field) => field.toLocaleLowerCase("es-BO").includes(search)))
-    : allConversations;
-  const selected = conversations.find((item) => item.id === params.id) ?? conversations[0] ?? null;
+  const matchesSearch = (item: ConversationRow) => !search ||
+    [item.customer?.full_name ?? "", item.customer?.phone ?? ""]
+      .some(field => field.toLocaleLowerCase("es-BO").includes(search));
+  const conversations = allConversations.filter(matchesSearch);
+  const requestedId = typeof params.id === "string" &&
+    /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(params.id) ? params.id : null;
+  let selected = conversations.find((item) => item.id === requestedId) ?? null;
+  let requestedUnavailable = false;
+  if (requestedId && !selected && !conversationsError) {
+    let selectedQuery = supabase.from("conversations").select(conversationFields).eq("id", requestedId);
+    if (params.estado && ["open", "pending", "closed"].includes(params.estado)) {
+      selectedQuery = selectedQuery.eq("status", params.estado);
+    }
+    const { data, error } = await selectedQuery.maybeSingle();
+    const row = data as unknown as ConversationRow | null;
+    if (row && !error && matchesSearch(row)) {
+      selected = row;
+      conversations.unshift(row);
+    } else {
+      requestedUnavailable = true;
+    }
+  }
+  if (!requestedId) selected = conversations[0] ?? null;
   const filterHref = (estado?: string) => {
     const query = new URLSearchParams();
     if (estado) query.set("estado", estado);
@@ -178,6 +198,8 @@ export default async function ConversationsPage({
                 </MessageTimeline>
                 <ReplyComposer conversationId={selected.id} disabled={selected.status === "closed"} />
               </>
+            ) : requestedUnavailable ? (
+              <div className="empty-thread"><strong>Conversación no disponible</strong><p>Puede haber cambiado de estado o ya no estar dentro de tu acceso.</p></div>
             ) : (
               <div className="empty-thread"><span className="empty-icon">B</span><strong>Tu bandeja está lista</strong><p>Selecciona una conversación para revisar el historial de atención.</p></div>
             )}
