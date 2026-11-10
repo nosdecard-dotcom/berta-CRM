@@ -24,7 +24,7 @@ export default function CrmSidebar({ role }: { role: string }) {
       {collapsed && <button type="button" className="sidebar-reopen" onClick={() => setCollapsed(false)} aria-label="Mostrar menú lateral">☰ Menú</button>}
       {open && <button className="sidebar-backdrop" aria-label="Cerrar menú" onClick={() => setOpen(false)} />}
       <aside id="crm-sidebar" className={`crm-sidebar ${open ? "is-open" : ""} ${collapsed ? "is-collapsed" : ""}`}>
-        <div className="sidebar-brand-row"><a className="sidebar-brand" href="/dashboard"><span className="crm-brand-mark">B</span><span><strong>BERTA AI CRM</strong><small>MARZOE · GESTIÓN COMERCIAL</small></span></a><button type="button" className="sidebar-collapse-button" onClick={() => setCollapsed(true)} aria-label="Ocultar menú lateral" title="Ocultar menú">«</button></div>
+        <div className="sidebar-brand-row"><a className="sidebar-brand" href="/dashboard"><span className="crm-brand-mark" aria-hidden="true"><span className="sidebar-chat-mark" /></span><span><strong>Berta<span className="sidebar-brand-accent">CRM</span></strong><small>MARZOE</small></span></a><button type="button" className="sidebar-collapse-button" onClick={() => setCollapsed(true)} aria-label="Ocultar menú lateral" title="Ocultar menú">«</button></div>
         <div className="sidebar-workspace"><span className="workspace-dot" /> Espacio MARZOE <span className="workspace-live">Pruebas</span></div>
         <nav className="sidebar-nav" aria-label="Navegación principal">
           {items.filter(item => {
@@ -33,7 +33,7 @@ export default function CrmSidebar({ role }: { role: string }) {
             return true;
           }).map((item, i, visibleItems) => <div key={item.href}>
             {(i === 0 || item.section !== visibleItems[i-1].section) && <p className="sidebar-section">{item.section}</p>}
-            <a href={item.href} className={pathname.startsWith(item.href) ? "sidebar-link active" : "sidebar-link"} aria-current={pathname.startsWith(item.href) ? "page" : undefined}><span className="sidebar-icon">{item.icon}</span>{item.label}</a>
+            <a href={item.href} className={pathname.startsWith(item.href) ? "sidebar-link active" : "sidebar-link"} aria-current={pathname.startsWith(item.href) ? "page" : undefined}><span className="sidebar-icon" aria-hidden="true">{item.icon}</span>{item.label}</a>
           </div>)}
         </nav>
         <div className="sidebar-bottom"><div className="sidebar-account"><span className="sidebar-avatar">{role.charAt(0).toUpperCase()}</span><span><strong>Equipo MARZOE</strong><small>{role === "admin" ? "Administrador" : role === "manager" ? "Supervisor" : "Agente"}</small></span></div><form action="/auth/signout" method="post"><button className="sidebar-signout" type="submit">Cerrar sesión ↗</button></form></div>

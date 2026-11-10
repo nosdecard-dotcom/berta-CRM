@@ -118,45 +118,39 @@ export default async function ConversationsPage({
     customer?.full_name?.trim() || customer?.phone || "Cliente sin nombre";
 
   return (
-    <div className="workspace-layout"><CrmSidebar role={role}/><div className="workspace-main"><main className="crm-shell">
-      <header className="crm-header">
-        <a className="crm-brand" href="/conversations">
-          <span className="crm-brand-mark">B</span>
-          <span><strong>BERTA AI CRM</strong><small>MARZOE · ATENCIÓN AL CLIENTE</small></span>
-        </a>
-        <nav className="customers-nav"><a className="active" href="/conversations">Conversaciones</a><a href="/customers">Clientes</a></nav>
-        <div className="crm-header-actions">
-          <span className="crm-role">{role}</span>
-          <form action="/auth/signout" method="post"><button className="crm-logout" type="submit">Cerrar sesión</button></form>
-        </div>
-      </header>
-
-      <section className="crm-heading">
-        <div><p className="eyebrow">CENTRO DE ATENCIÓN</p><h1>Conversaciones</h1><p>Gestiona los mensajes de WhatsApp y el seguimiento de tus clientes.</p></div>
-        <div className="crm-summary"><strong>{conversations.length}</strong><span>conversaciones visibles</span><LiveInboxRefresh /></div>
-      </section>
+    <div className="workspace-layout">
+      <CrmSidebar role={role} />
+      <div className="workspace-main">
+        <main className="crm-shell conversations-workspace">
+          <header className="inbox-toolbar">
+            <h1>Conversaciones</h1>
+            <form className="inbox-toolbar-search" action="/conversations" method="get" role="search">
+              {params.estado && <input type="hidden" name="estado" value={params.estado} />}
+              <input aria-label="Buscar cliente o teléfono" name="buscar" type="search"
+                maxLength={80} defaultValue={params.buscar ?? ""} placeholder="Buscar cliente o teléfono…" />
+              <button type="submit">Buscar</button>
+              {search && <a href={filterHref(params.estado)}>Limpiar</a>}
+            </form>
+            <LiveInboxRefresh />
+          </header>
 
       {conversationsError ? (
         <div className="crm-alert">No fue posible cargar las conversaciones. Verifica tus permisos y vuelve a intentarlo.</div>
       ) : (
-        <section className="inbox-layout">
+        <section className="inbox-layout" aria-label="Bandeja de conversaciones">
           <aside className="conversation-panel">
-            <div className="panel-title"><h2>Bandeja</h2><span>{conversations.length}</span></div>
-            <form className="inbox-search" action="/conversations" method="get" role="search">
-              {params.estado && <input type="hidden" name="estado" value={params.estado} />}
-              <label htmlFor="inbox-search-input">Buscar cliente o teléfono</label>
-              <div className="inbox-search-row"><input id="inbox-search-input" name="buscar" type="search" maxLength={80} defaultValue={params.buscar ?? ""} placeholder="Nombre o número..." /><button type="submit">Buscar</button></div>
-              <div className="inbox-search-actions">{search && <a href={filterHref(params.estado)}>Limpiar búsqueda</a>}<a href={filterHref(params.estado)}>Actualizar bandeja ↻</a></div>
-            </form>
+            <div className="panel-title">
+              <h2>Bandeja</h2><span aria-label={`${conversations.length} conversaciones visibles`}>{conversations.length}</span>
+            </div>
             <nav className="conversation-filters" aria-label="Filtrar conversaciones">
               <a className={!params.estado ? "active" : ""} href={filterHref()}>Todas</a>
               <a className={params.estado === "open" ? "active" : ""} href={filterHref("open")}>Abiertas</a>
               <a className={params.estado === "pending" ? "active" : ""} href={filterHref("pending")}>Pendientes</a>
               <a className={params.estado === "closed" ? "active" : ""} href={filterHref("closed")}>Cerradas</a>
             </nav>
-            <div className="conversation-list">
+            <div className="conversation-list" aria-label="Conversaciones visibles">
               {conversations.map((conversation) => (
-                <a key={conversation.id} href={`/conversations?id=${conversation.id}${params.estado ? `&estado=${params.estado}` : ""}${params.buscar ? `&buscar=${encodeURIComponent(params.buscar.slice(0, 80))}` : ""}`} className={selected?.id === conversation.id ? "conversation-item selected" : "conversation-item"}>
+                <a key={conversation.id} href={`/conversations?id=${conversation.id}${params.estado ? `&estado=${params.estado}` : ""}${params.buscar ? `&buscar=${encodeURIComponent(params.buscar.slice(0, 80))}` : ""}`} aria-current={selected?.id === conversation.id ? "true" : undefined} className={selected?.id === conversation.id ? "conversation-item selected" : "conversation-item"}>
                   <span className="customer-avatar">{customerName(conversation.customer).slice(0, 1).toUpperCase()}</span>
                   <span className="conversation-copy">
                     <span className="conversation-name">{customerName(conversation.customer)}</span>
@@ -206,6 +200,8 @@ export default async function ConversationsPage({
           </section>
         </section>
       )}
-    </main></div></div>
+        </main>
+      </div>
+    </div>
   );
 }

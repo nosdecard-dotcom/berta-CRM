@@ -324,3 +324,146 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
 .berta-prompt button { border:0; cursor:pointer; }
 .berta-prompt button:disabled { opacity:.55; cursor:default; }
 .berta-prompt-text { white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.6; }
+
+/* Workspace palette and inbox */
+.workspace-layout {
+  --ink: #172822;
+  --muted: #526a60;
+  --line: #dee8e3;
+  --green: #16744c;
+  --green-dark: #105a3a;
+  --inbox-accent: #21825a;
+  --inbox-soft: #eaf7ef;
+  background: #f4f7f5;
+}
+
+.workspace-layout h1, .workspace-layout h2,
+.workspace-layout .stat-card > strong, .workspace-layout .dashboard-ai-number {
+  font-family: Arial, Helvetica, sans-serif;
+  letter-spacing: -.025em;
+}
+
+.sidebar-brand-row .sidebar-brand { gap: 10px; padding-block: 17px; }
+.sidebar-brand-row .sidebar-brand strong { font: 700 17px Arial, Helvetica, sans-serif; }
+.sidebar-brand-row .sidebar-brand small { font-size: 9px; letter-spacing: .1em; }
+.sidebar-brand-accent { color: var(--inbox-accent); }
+.sidebar-brand .crm-brand-mark {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border-radius: 10px;
+  background: var(--inbox-accent);
+}
+.sidebar-chat-mark {
+  position: relative;
+  width: 14px;
+  height: 12px;
+  border: 1.6px solid white;
+  border-radius: 6px;
+}
+.sidebar-chat-mark::after {
+  content: "";
+  position: absolute;
+  bottom: -3px;
+  left: 1px;
+  width: 4px;
+  height: 4px;
+  background: var(--inbox-accent);
+  border-left: 1.6px solid white;
+  border-bottom: 1.6px solid white;
+  transform: skewY(-32deg);
+}
+.sidebar-workspace { background: #f5faf7; }
+.sidebar-section { color: #527467; }
+.sidebar-link { min-height: 38px; color: #324f43; }
+.sidebar-icon { color: #497565; }
+.sidebar-link.active { background: var(--inbox-soft); color: var(--green-dark); }
+.sidebar-link.active .sidebar-icon { color: var(--green); }
+.sidebar-avatar, .workspace-layout .stat-icon { background: var(--inbox-soft); }
+.workspace-layout .stat-card, .workspace-layout .dashboard-panel, .workspace-layout .berta-panel { box-shadow: none; }
+.workspace-layout .dashboard-primary { background: var(--green); }
+
+.workspace-main .conversations-workspace {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  background: white;
+}
+.inbox-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 68px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.inbox-toolbar h1 { margin: 0 auto 0 0; font-size: 21px; font-weight: 700; }
+.inbox-toolbar-search { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.inbox-toolbar-search input, .inbox-toolbar-search button {
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 13px;
+}
+.inbox-toolbar-search input { min-width: 0; width: min(26vw, 290px); color: var(--ink); background: #f4f9f6; }
+.inbox-toolbar-search button { background: white; color: var(--green-dark); font-weight: 600; cursor: pointer; }
+.inbox-toolbar-search a { color: var(--green-dark); font-size: 12px; }
+.workspace-layout :is(a, button, input, textarea, select):focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+
+.workspace-main .conversations-workspace .inbox-layout {
+  grid-template-columns: minmax(240px, 30%) minmax(0, 1fr);
+  min-height: 475px;
+  height: calc(100dvh - 68px);
+  max-height: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.conversations-workspace .panel-title { padding: 15px 16px 10px; }
+.conversations-workspace .panel-title h2 { font-size: 14px; font-weight: 700; }
+.conversations-workspace .conversation-filters { padding: 0 10px 9px; }
+.conversations-workspace .conversation-filters a { font-size: 11px; }
+.conversations-workspace .conversation-item { border-radius: 0; margin: 0; padding: 12px; border-bottom: 1px solid var(--line); }
+.conversations-workspace .conversation-item.selected { background: var(--inbox-soft); }
+.conversations-workspace .customer-avatar { background: var(--inbox-accent); color: white; border-radius: 50%; font-family: Arial, Helvetica, sans-serif; }
+.conversations-workspace .conversation-name { font-size: 13px; }
+.conversations-workspace .conversation-phone, .conversations-workspace .conversation-meta { color: var(--muted); }
+.conversations-workspace .thread-panel { background: #f1f5f3; }
+.conversations-workspace .thread-header { padding: 12px 16px; }
+.conversations-workspace .thread-customer h2 { font-size: 15px; font-weight: 700; overflow-wrap: anywhere; }
+.conversations-workspace .thread-notice, .conversations-workspace .conversation-controls { background: white; }
+.conversations-workspace .message-timeline { padding: 16px; }
+.conversations-workspace .message-bubble p { font-size: 13px; }
+.conversations-workspace .message-row.outbound .message-bubble {
+  background: var(--green);
+  border-color: var(--green);
+  color: white;
+}
+.conversations-workspace .message-row.outbound .message-bubble :is(footer, .attachment-label) { color: #e4f5ea; }
+.conversations-workspace .message-row.inbound .message-bubble footer { color: var(--muted); }
+.conversations-workspace .reply-composer textarea { background: #f6faf7; font-family: inherit; }
+
+@media (max-width: 760px) {
+  .inbox-toolbar { padding-left: 100px; flex-wrap: wrap; }
+  .inbox-toolbar h1 { font-size: 18px; }
+  .inbox-toolbar-search input { width: min(45vw, 240px); }
+  .workspace-main .conversations-workspace .inbox-layout {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+  .conversations-workspace .conversation-panel { max-height: 280px; border-right: 0; border-bottom: 1px solid var(--line); }
+  .conversations-workspace .thread-panel { height: max(550px, 75dvh); }
+  .conversations-workspace .thread-header { align-items: flex-start; flex-wrap: wrap; }
+  .conversations-workspace .message-bubble { max-width: 90%; }
+}
+@media (max-width: 440px) {
+  .inbox-toolbar-search { margin-left: -80px; flex-basis: calc(100% + 80px); }
+  .inbox-toolbar-search input { flex: 1; }
+}
+@media (min-width: 761px) {
+  .workspace-layout:has(.crm-sidebar.is-collapsed) .inbox-toolbar { padding-left: 112px; }
+}
