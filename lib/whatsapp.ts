@@ -31,5 +31,10 @@ export async function sendWhatsAppMessage(to: string, text: string) {
     throw new Error(`WhatsApp Cloud API error ${res.status}: ${errText}`);
   }
 
-  return res.json() as Promise<{ messages?: { id: string }[] }>;
+  const result = await res.json() as { messages?: { id?: unknown }[] } | null;
+  const id = result?.messages?.[0]?.id;
+  if (typeof id !== "string" || !id.trim()) {
+    throw new Error("WhatsApp Cloud API no devolvió un identificador de mensaje.");
+  }
+  return { messages: [{ id }] };
 }

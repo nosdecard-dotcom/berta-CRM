@@ -146,6 +146,7 @@ async function processWebhookValue(
     if (customerUpdateError) throw customerUpdateError;
 
     let newOrder = false;
+    let orderCaptureFailed = false;
     let deliveryDetails: Awaited<ReturnType<typeof updatePendingOrderDelivery>> = null;
     if (saved.id && normalized.messageType === "text" && normalized.body) {
       try {
@@ -156,6 +157,7 @@ async function processWebhookValue(
         newOrder = capture.created;
         console.info("[orders] capture", { created: capture.created, reason: "reason" in capture ? capture.reason : undefined });
       } catch (captureError) {
+        orderCaptureFailed = true;
         console.error("[orders] capture-failed", { code: typeof captureError === "object" && captureError !== null && "code" in captureError ? String(captureError.code) : "unknown" });
         // A failure to capture must not block the WhatsApp conversation.
       }
@@ -184,7 +186,7 @@ async function processWebhookValue(
         conversationId: conversation.id,
         direction: "outbound",
         body: handoffText,
-        whatsappMessageId: sent.messages?.[0]?.id ?? null,
+        whatsappMessageId: sent.messages[0].id,
         deliveryStatus: "sent",
         aiGenerated: true,
       });
@@ -208,10 +210,18 @@ async function processWebhookValue(
         content: item.body as string,
       }));
 
-    const reply = newOrder && deliveryDetails ? orderAcknowledgement(deliveryDetails) : await generateBertaReply({
-      history: chatHistory,
-      userMessage: normalized.body ?? "El cliente envió un mensaje sin texto.",
-    });
+    let reply: string;
+    if (orderCaptureFailed) {
+      reply = "No pudimos registrar tu solicitud en este momento. Nuestro equipo puede revisar los detalles de tu pedido por este chat.";
+    } else if (newOrder) {
+      reply = deliveryDetails ? orderAcknowledgement(deliveryDetails)
+        : "Registramos tu solicitud. Nuestro equipo revisará los datos de entrega y verificará el pedido antes de confirmarlo.";
+    } else {
+      reply = await generateBertaReply({
+        history: chatHistory,
+        userMessage: normalized.body ?? "El cliente envió un mensaje sin texto.",
+      });
+    }
 
     console.info("[wa-webhook] reply-generated");
     let sent: Awaited<ReturnType<typeof sendWhatsAppMessage>>;
@@ -226,7 +236,7 @@ async function processWebhookValue(
       conversationId: conversation.id,
       direction: "outbound",
       body: reply,
-      whatsappMessageId: sent.messages?.[0]?.id ?? null,
+      whatsappMessageId: sent.messages[0].id,
       deliveryStatus: "sent",
       aiGenerated: true,
     });

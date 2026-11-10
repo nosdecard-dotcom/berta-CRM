@@ -44,7 +44,7 @@ export async function captureOrderRequest(db:SupabaseClient, args:{
    notes:"Solicitud detectada automáticamente en WhatsApp. Requiere validación humana de producto, cantidad, precio y entrega."
  }).select("id").single();
  if(orderError){if(orderError.code==="23505")return {created:false,reason:"already-recorded"};throw orderError;}
- if(!order)return {created:false,reason:"already-recorded"};
+ if(!order)throw new Error("No se pudo verificar la creación de la solicitud.");
  const {error:itemError}=await db.from("sales_order_items").insert({
    order_id:order.id,product_id:product.id,product_name:product.name,
    quantity,retail_unit_price_bob:product.price_bob
