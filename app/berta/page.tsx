@@ -1,5 +1,6 @@
-import { redirect } from "next/navigation";
-import { createSupabaseServerClient } from "@/lib/supabase/ssr-server";
+import { requireCrmWorkspace } from "@/lib/crm-workspace";
+import { MARZOE_SYSTEM_PROMPT } from "@/lib/agent";
+import PromptEditor from "./prompt-editor";
 import CrmSidebar from "@/app/components/crm-sidebar";
 
 export const dynamic = "force-dynamic";
@@ -14,12 +15,7 @@ const requirements = [
 ];
 
 export default async function BertaPage() {
-  const supabase = await createSupabaseServerClient();
-  const { data: claims, error } = await supabase.auth.getClaims();
-  if (error || !claims) redirect("/login");
-  const role = (claims.claims.app_metadata as { role?: string } | undefined)?.role ?? "";
-  if (!["admin", "manager", "agent"].includes(role)) redirect("/");
-  if (role !== "admin") redirect("/dashboard");
+  const { role, userId } = await requireCrmWorkspace({ adminOnly: true });
   const checks = requirements.map(item => ({ ...item, configured: Boolean((item.key === "SUPABASE_SECRET_KEY" ? (process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY) : process.env[item.key])?.trim()) }));
   const ready = checks.filter(item => item.configured).length;
   return <div className="workspace-layout">
@@ -30,6 +26,9 @@ export default async function BertaPage() {
         <p className="eyebrow">ASISTENTE VIRTUAL</p>
         <h1>Configuración de Berta AI</h1>
         <p className="berta-lead">Revisa las instrucciones comerciales de Berta y el estado de las integraciones de MARZOE.</p>
+        {process.env.VERCEL_ENV === "preview" && (
+          <PromptEditor draftKey={`berta-prompt-draft:${userId}`} basePrompt={MARZOE_SYSTEM_PROMPT} />
+        )}
         <div className="berta-grid">
           <section className="berta-panel">
             <div className="berta-panel-title"><span className="berta-symbol">✦</span><div><h2>Identidad y atención</h2><p>Instrucciones vigentes en el código del agente</p></div></div>

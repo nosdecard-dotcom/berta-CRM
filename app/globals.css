@@ -315,3 +315,12 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
  .thread-header { padding: 12px 14px; }
  .thread-notice { padding: 8px 14px; }
 }
+
+.berta-prompt { display:grid; gap:12px; margin-bottom:18px; }
+.berta-prompt label { font-size:13px; font-weight:700; }
+.berta-prompt summary { cursor:pointer; color:var(--green); font-size:13px; }
+.berta-prompt textarea { width:100%; resize:vertical; padding:12px; font:inherit; border:1px solid var(--line); border-radius:8px; color:var(--ink); }
+.berta-prompt small, .berta-prompt .berta-caution { color:var(--muted); margin:0; }
+.berta-prompt button { border:0; cursor:pointer; }
+.berta-prompt button:disabled { opacity:.55; cursor:default; }
+.berta-prompt-text { white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.6; }

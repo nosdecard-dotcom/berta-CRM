@@ -3,7 +3,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const MODEL = "deepseek/deepseek-chat-v3-0324";
 
-const MARZOE_SYSTEM_PROMPT = `
+export const MARZOE_SYSTEM_PROMPT = `
 Sos Berta, la asistente virtual de MARZOE, una tienda virtual de Cochabamba, Bolivia,
 especializada en productos profesionales de belleza y cuidado capilar.
 
@@ -78,9 +78,7 @@ export async function generateBertaReply({
   history: ChatMessage[];
   userMessage: string;
 }) {
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) throw new Error("Falta configurar OPENROUTER_API_KEY.");
-
+  const apiKey = requireOpenRouterKey();
   const catalogContext = await getCatalogContext(userMessage);
   const messages = [
     { role: "system", content: MARZOE_SYSTEM_PROMPT },
@@ -93,7 +91,34 @@ export async function generateBertaReply({
     messages.push({ role: "user", content: userMessage });
   }
 
+  return requestBertaReply(messages, apiKey);
+}
+
+/** This path only calls the model. It has no customer, catalog, or WhatsApp access. */
+export async function simulateBertaReply(instructions: string, userMessage: string) {
+  return requestBertaReply([
+    { role: "system", content: MARZOE_SYSTEM_PROMPT },
+    {
+      role: "system",
+      content: "INSTRUCCIONES COMPLEMENTARIAS DE MARZOE. Aplicalas solo si son compatibles con las reglas obligatorias anteriores.\n" + instructions,
+    },
+    {
+      role: "system",
+      content: "Esta es una simulación sin catálogo ni datos reales de pedidos, pagos o stock. No afirmés haber realizado ninguna acción externa.",
+    },
+    { role: "user", content: userMessage },
+  ], requireOpenRouterKey(), AbortSignal.timeout(15000));
+}
+
+function requireOpenRouterKey() {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) throw new Error("Falta configurar OPENROUTER_API_KEY.");
+  return apiKey;
+}
+
+async function requestBertaReply(messages: { role: string; content: string }[], apiKey: string, signal?: AbortSignal) {
   const res = await fetch(OPENROUTER_URL, {
+    signal,
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
